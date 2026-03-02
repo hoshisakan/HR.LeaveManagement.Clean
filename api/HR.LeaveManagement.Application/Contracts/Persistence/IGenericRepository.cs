@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HR.LeaveManagement.Domain.Common;
+
 
 namespace HR.LeaveManagement.Application.Contracts.Persistence
 {
-    public interface IGenericRepository<T> where T : class
+    public interface IGenericRepository<T> where T : BaseEntity
     {
-        Task<List<T>> GetAsync();
+        Task<IReadOnlyList<T>> GetAsync();
         Task<T> GetByIdAsync(int id);
         Task<T> CreateAsync(T entity);
         Task<T> UpdateAsync(T entity);

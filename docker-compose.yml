@@ -1,4 +1,72 @@
 services:
+    reverse_proxy:
+        build:
+            context: ./conf/nginx
+            dockerfile: Dockerfile
+            args:
+                - NGINX_TIME_ZONE=${NGINX_TIME_ZONE}
+                - NGINX_LANG_NAME=${NGINX_LANG_NAME}
+                - NGINX_LANG_INPUTFILE=${NGINX_LANG_INPUTFILE}
+                - NGINX_LANG_CHARMAP=${NGINX_LANG_CHARMAP}
+                - DEBIAN_FRONTEND=${NGINX_DEBIAN_FRONTEND}
+        image: ${CONTAINER_AUTHOR}/${PROJECT_NAME}/nginx:${NGINX_VERSION}
+        container_name: ${PROJECT_NAME}_nginx
+        env_file:
+            - ${ENV_FILE_PATH}
+        environment:
+            - LANG=${NGINX_LANG_NAME}
+        volumes:
+            - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf
+            - ./conf/nginx/conf.d:/etc/nginx/conf.d
+            - ./logs/nginx:/var/log/nginx
+            - ./certs/nginx:/etc/nginx/ssl
+            # - ./frontend/hr-leave-management-ui/dist:/usr/share/nginx/html
+            # - ./static/Images:/deploy/api/Images:rw
+        ports:
+            - ${NGINX_HTTP_OUTER_PORT}:${NGINX_HTTP_INNER_PORT}
+            - ${NGINX_HTTPS_OUTER_PORT}:${NGINX_HTTPS_INNER_PORT}
+        depends_on:
+            - api
+            - mssql
+        networks:
+            hr_leave_management_network:
+                ipv4_address: ${NGINX_HOST_IP}
+        user: root
+        tty: true
+        restart: always
+
+    api:
+      build:
+        context: .
+        dockerfile: Dockerfile
+        args:
+            - DOTNET_IMAGE_VERSION=${DOTNET_IMAGE_VERSION}
+            - DOTNET_LANG_NAME=${DOTNET_LANG_NAME}
+            - DOTNET_LANG_INPUTFILE=${DOTNET_LANG_INPUTFILE}
+            - DOTNET_LANG_CHARMAP=${DOTNET_LANG_CHARMAP}
+            - DOTNET_DEBIAN_FRONTEND=${DOTNET_DEBIAN_FRONTEND}
+            - DOTNET_TIME_ZONE=${DOTNET_TIME_ZONE}
+      image: ${CONTAINER_AUTHOR}/${PROJECT_NAME}/api_${API_VERSION}
+      container_name: ${PROJECT_NAME}_api
+      env_file:
+        - ${ENV_FILE_PATH}
+      environment:
+          - DOTNET_LANG_NAME=${DOTNET_LANG_NAME}
+          - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+          - ASPNETCORE_URLS=${ASPNETCORE_URLS}
+      ports:
+        - ${API_OUTER_PORT}:${API_INNER_PORT}
+      volumes:
+        - ./static/Images:/deploy/api/Images:rw
+        - ./logs/api:/deploy/api/Logs:rw
+      networks:
+        hr_leave_management_network:
+          ipv4_address: ${API_HOST_IP}
+      depends_on:
+        - mssql
+      tty: true
+      restart: always
+
     mssql:
       build:
         context: ./conf/mssql

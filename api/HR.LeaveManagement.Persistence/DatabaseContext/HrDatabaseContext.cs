@@ -24,10 +24,8 @@ namespace HR.LeaveManagement.Persistence.DatabaseContext
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Apply all the configurations in the assembly
-            modelBuilder.ApplyConfigurationsFromAssembly(typeof(HrDatabaseContext).Assembly);
-            
             // Seed the LeaveType entity
-            modelBuilder.ApplyConfiguration(new LeaveTypeConfiguration());
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(HrDatabaseContext).Assembly);
             
             // Apply the configuration for the LeaveType entity
             base.OnModelCreating(modelBuilder);
@@ -38,11 +36,19 @@ namespace HR.LeaveManagement.Persistence.DatabaseContext
             foreach (var entry in ChangeTracker.Entries<BaseEntity>()
             .Where(q => q.State == EntityState.Added || q.State == EntityState.Modified))
             {
+                // Set the DateModified property to the current date and time
                 entry.Entity.DateModified = DateTime.Now;
 
+                // Set the DateCreated property if the entity is being added
                 if (entry.State == EntityState.Added)
                 {
                     entry.Entity.DateCreated = DateTime.Now;
+                }
+
+                // Prevent the DateCreated property from being modified
+                if (entry.State == EntityState.Modified)
+                {
+                    entry.Property(x => x.DateCreated).IsModified = false;
                 }
             }
             return base.SaveChangesAsync(cancellationToken);

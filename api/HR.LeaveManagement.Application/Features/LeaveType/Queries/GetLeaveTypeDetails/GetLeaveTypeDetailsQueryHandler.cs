@@ -26,9 +26,6 @@ namespace HR.LeaveManagement.Application.Features.LeaveType.Queries.GetLeaveType
         {
             var leaveType = await _leaveTypeRepository.GetByIdAsync(request.Id);
 
-            if (leaveType == null)
-                throw new NotFoundException(nameof(LeaveType), request.Id);
-
             return _mapper.Map<LeaveTypeDetailDto>(leaveType);
         }
     }

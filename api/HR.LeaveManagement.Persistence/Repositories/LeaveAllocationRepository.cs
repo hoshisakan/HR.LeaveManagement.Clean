@@ -50,5 +50,10 @@ namespace HR.LeaveManagement.Persistence.Repositories
             var leaveAllocation = await _dbSet.Include(q => q.LeaveType).FirstOrDefaultAsync(q => q.EmployeeId == userId && q.LeaveTypeId == leaveTypeId);
             return leaveAllocation;
         }
+
+        public async Task<bool> LeaveAllocationMustExist(string userId, int leaveTypeId, int period)
+        {
+            return await _dbSet.AnyAsync(q => q.EmployeeId == userId && q.LeaveTypeId == leaveTypeId && q.Period == period);
+        }
     }
 }

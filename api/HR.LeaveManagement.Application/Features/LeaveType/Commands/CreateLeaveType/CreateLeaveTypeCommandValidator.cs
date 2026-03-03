@@ -14,6 +14,8 @@ namespace HR.LeaveManagement.Application.Features.LeaveType.Commands.CreateLeave
 
         public CreateLeaveTypeCommandValidator(ILeaveTypeRepository leaveTypeRepository)
         {
+            _leaveTypeRepository = leaveTypeRepository;
+
             RuleFor(p => p.Name)
                 .NotEmpty().WithMessage("{PropertyName} is required.")
                 .NotNull()
@@ -22,13 +24,12 @@ namespace HR.LeaveManagement.Application.Features.LeaveType.Commands.CreateLeave
             RuleFor(p => p.DefaultDays)
                 .NotEmpty().WithMessage("{PropertyName} is required.")
                 .NotNull()
-                .GreaterThan(0).WithMessage("{PropertyName} must be greater than 0.");
+                .LessThan(100).WithMessage("{PropertyName} cannot exceed 100.")
+                .GreaterThan(1).WithMessage("{PropertyName} cannot be less than 1.");
 
             RuleFor(q => q)
                 .MustAsync(LeaveTypeNameUnique)
                 .WithMessage("Leave type already exists.");
-
-            _leaveTypeRepository = leaveTypeRepository;
         }
 
         private async Task<bool> LeaveTypeNameUnique(CreateLeaveTypeCommand command, CancellationToken token)

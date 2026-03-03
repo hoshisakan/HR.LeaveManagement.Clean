@@ -1,0 +1,35 @@
+services:
+    mssql:
+      build:
+        context: ./conf/mssql
+        dockerfile: Dockerfile
+      image: ${CONTAINER_AUTHOR}/${PROJECT_NAME}/mssql_${MSSQL_VERSION}
+      container_name: ${PROJECT_NAME}_mssql
+      volumes:
+              - ./data/mssql/mssql_data:/var/opt/mssql/data
+              - ./backup/mssql:${MSSQL_BACKUP_PATH}
+              - ./logs/mssql:/var/opt/mssql/log
+              - ./secrets/mssql:/var/opt/mssql/secrets
+      environment:
+              - ACCEPT_EULA=${MSSQL_EULA}
+              - SA_PASSWORD=${MSSQL_SA_PASSWORD}
+              - MSSQL_PID=${MSSQL_PID}
+              - MSSQL_COLLATION=${MSSQL_COLLATION}
+              - MSSQL_ENABLE_HADR=${MSSQL_ENABLE_HADR}
+      env_file:
+          - ${ENV_FILE_PATH}
+      user: root
+      ports:
+          - ${MSSQL_OUTER_PORT}:${MSSQL_INNER_PORT}
+      networks:
+          hr_leave_management_network:
+              ipv4_address: ${MSSQL_HOST_IP}
+      restart: always
+
+networks:
+  hr_leave_management_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${MSSQL_SUBNET}
+          gateway: ${MSSQL_GATEWAY}

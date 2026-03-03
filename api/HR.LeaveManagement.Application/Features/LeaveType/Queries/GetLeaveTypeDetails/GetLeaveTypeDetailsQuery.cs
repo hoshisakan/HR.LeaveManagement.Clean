@@ -10,11 +10,6 @@ namespace HR.LeaveManagement.Application.Features.LeaveType.Queries.GetLeaveType
     public class GetLeaveTypeDetailsQuery : IRequest<LeaveTypeDetailDto>
     {
         public int Id { get; set; }
-
-        public GetLeaveTypeDetailsQuery(int id)
-        {
-            Id = id;
-        }
     }
 
     // alternative way to define the query

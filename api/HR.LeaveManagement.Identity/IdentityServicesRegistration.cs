@@ -8,13 +8,14 @@ using Microsoft.AspNetCore.Identity;
 using HR.LeaveManagement.Identity.Models;
 using HR.LeaveManagement.Identity.DatabaseContext;
 using Microsoft.EntityFrameworkCore;
+using HR.LeaveManagement.Identity.Repositories;
 using HR.LeaveManagement.Identity.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using HR.LeaveManagement.Application.Models.Identity;
 using System.Text;
+using HR.LeaveManagement.Application.Contracts.Persistence;
 using HR.LeaveManagement.Application.Identity;
-
 
 namespace HR.LeaveManagement.Identity
 {
@@ -34,9 +35,8 @@ namespace HR.LeaveManagement.Identity
                 .AddEntityFrameworkStores<HrLeaveManagementIdentityDbContext>()
                 .AddDefaultTokenProviders();
 
-            // Add the AuthService
+            services.AddScoped<ITokenRepository, TokenRepository>();
             services.AddTransient<IAuthService, AuthService>();
-            // Add the UserService
             services.AddTransient<IUserService, UserService>();
 
             // Add JwtAuthentication

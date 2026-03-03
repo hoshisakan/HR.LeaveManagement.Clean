@@ -5,13 +5,10 @@ using System.Threading.Tasks;
 using HR.LeaveManagement.Application.Identity;
 using HR.LeaveManagement.Identity.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
-using HR.LeaveManagement.Application.Models.Identity;
 using HR.LeaveManagement.Application.Exceptions;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
+using HR.LeaveManagement.Application.Contracts.Persistence;
+using HR.LeaveManagement.Application.Models.Identity;
 
 
 namespace HR.LeaveManagement.Identity.Services
@@ -20,13 +17,13 @@ namespace HR.LeaveManagement.Identity.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly JwtSettings _jwtSettings;
+        private readonly ITokenRepository _tokenRepository;
 
-        public AuthService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IOptions<JwtSettings> jwtSettings)
+        public AuthService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ITokenRepository tokenRepository)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _jwtSettings = jwtSettings.Value;
+            _tokenRepository = tokenRepository;
         }
 
         public async Task<AuthResponse> LoginAsync(AuthRequest request)
@@ -41,55 +38,20 @@ namespace HR.LeaveManagement.Identity.Services
             if (!result.Succeeded)
                 throw new BadRequestException("Credentials for '{request.Email}' are not valid");
 
-            JwtSecurityToken token = await GenerateToken(user);
+            var jwtTokenId = Guid.NewGuid().ToString();
+            var jwtToken = await _tokenRepository.CreateJwtToken(user.Id, jwtTokenId);
+            var refreshToken = await _tokenRepository.CreateRefreshTokenAsync(user.Id, jwtTokenId);
 
             var response = new AuthResponse
             {
                 Id = user.Id,
                 UserName = user.UserName,
                 Email = user.Email,
-                Token = new JwtSecurityTokenHandler().WriteToken(token)
+                Token = jwtToken,
+                RefreshToken = refreshToken
             };
 
             return response;
-        }
-
-        private async Task<JwtSecurityToken> GenerateToken(ApplicationUser user)
-        {
-            // User Claims
-            var userClaims = await _userManager.GetClaimsAsync(user);
-
-            // Get Roles
-            var roles = await _userManager.GetRolesAsync(user);
-
-            // Role Claims
-            var roleClaims = roles.Select(role => new Claim(ClaimTypes.Role, role)).ToList();
-
-            // JWT Claims
-            var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim("uid", user.Id),
-            }
-            .Union(userClaims)
-            .Union(roleClaims);
-
-            // Create Security Key
-            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
-            // Create Credentials
-            var credentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256);
-
-            // Create Token
-            var token = new JwtSecurityToken(
-                issuer: _jwtSettings.Issuer,
-                audience: _jwtSettings.Audience,
-                claims: claims,
-                expires: DateTime.Now.AddMinutes(_jwtSettings.DurationInMinutes),
-                signingCredentials: credentials
-            );
-            return token;
         }
 
         public async Task<RegistrationResponse> RegisterAsync(RegistrationRequest request)
@@ -119,6 +81,37 @@ namespace HR.LeaveManagement.Identity.Services
                 }
                 throw new BadRequestException(errors.ToString());
             }
+        }
+
+        public async Task<AuthResponse> RefreshTokenAsync(TokenRequest request)
+        {
+            var storedToken = await _tokenRepository.GetRefreshTokenAsync(request.RefreshToken);
+            if (storedToken == null || storedToken.IsRevoked || storedToken.IsUsed || storedToken.ExpiryDate < DateTime.UtcNow)
+                throw new BadRequestException("Invalid refresh token!");
+
+            await _tokenRepository.MarkRefreshTokenAsUsedAsync(request.RefreshToken);
+
+            var user = await _userManager.FindByIdAsync(storedToken.UserId);
+            if (user == null)
+                throw new BadRequestException("Invalid refresh token!");
+
+            var jwtTokenId = Guid.NewGuid().ToString();
+            var jwtToken = await _tokenRepository.CreateJwtToken(user.Id, jwtTokenId);
+            var refreshToken = await _tokenRepository.CreateRefreshTokenAsync(user.Id, jwtTokenId);
+        
+            return new AuthResponse
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                Token = jwtToken,
+                RefreshToken = refreshToken
+            };
+        }
+
+        public async Task LogoutAsync(string refreshToken)
+        {
+            await _tokenRepository.RevokeRefreshTokenAsync(refreshToken);
         }
     }
 }

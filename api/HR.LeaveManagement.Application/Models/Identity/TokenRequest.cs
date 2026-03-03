@@ -2,15 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+
 
 namespace HR.LeaveManagement.Application.Models.Identity
 {
-    public class AuthResponse
+    public class TokenRequest
     {
-        public string Id { get; set; }
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string Token { get; set; }
+        [Required]
+        public string JwtToken { get; set; }
+
+        [Required]
         public string RefreshToken { get; set; }
     }
 }

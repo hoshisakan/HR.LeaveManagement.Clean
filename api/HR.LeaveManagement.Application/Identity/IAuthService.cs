@@ -11,5 +11,7 @@ namespace HR.LeaveManagement.Application.Identity
     {
         Task<AuthResponse> LoginAsync(AuthRequest request);
         Task<RegistrationResponse> RegisterAsync(RegistrationRequest request);
+        Task<AuthResponse> RefreshTokenAsync(TokenRequest request);
+        Task LogoutAsync(string refreshToken);
     }
 }

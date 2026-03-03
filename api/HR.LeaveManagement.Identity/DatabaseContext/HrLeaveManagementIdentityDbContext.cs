@@ -15,6 +15,8 @@ namespace HR.LeaveManagement.Identity.DatabaseContext
         {
         }
 
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Apply the base configurations

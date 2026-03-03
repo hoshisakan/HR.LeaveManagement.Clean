@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using HR.LeaveManagement.Application.Models.Identity;
 using HR.LeaveManagement.Application.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace HR.LeaveManagement.Api.Controllers
@@ -34,6 +35,23 @@ namespace HR.LeaveManagement.Api.Controllers
         {
             var response = await _authService.RegisterAsync(request);
             return Ok(response);
+        }
+
+        [HttpPost]
+        [Route("Refresh-Token")]
+        public async Task<IActionResult> RefreshToken([FromBody] TokenRequest request)
+        {
+            var response = await _authService.RefreshTokenAsync(request);
+            return Ok(response);
+        }
+
+        [HttpPost]
+        [Route("Logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout([FromBody] TokenRequest request)
+        {
+            await _authService.LogoutAsync(request.RefreshToken);
+            return Ok("Logged out successfully!");
         }
     }
 }

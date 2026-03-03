@@ -10,13 +10,15 @@ using HR.LeaveManagement.Application.Features.LeaveType.Commands.CreateLeaveType
 using HR.LeaveManagement.Application.Features.LeaveType.Commands.UpdateLeaveType;
 using HR.LeaveManagement.Application.Features.LeaveType.Commands.DeleteLeaveType;
 using Microsoft.AspNetCore.Authorization;
+using Asp.Versioning;
 
 
 namespace HR.LeaveManagement.Api.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiVersion("1.0")]
     public class LeaveTypesController : ControllerBase
     {
         private readonly IMediator _mediator;

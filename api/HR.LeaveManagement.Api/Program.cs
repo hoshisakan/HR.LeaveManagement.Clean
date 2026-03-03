@@ -6,6 +6,12 @@ using Microsoft.Extensions.Configuration;
 using HR.LeaveManagement.Api.Middleware;
 using Serilog;
 using HR.LeaveManagement.Identity;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
+using HR.LeaveManagement.Api.Configurations;
+using Microsoft.Extensions.Options;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.OpenApi.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +31,21 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddIdentityServices(builder.Configuration);
 
 builder.Services.AddControllers();
+
+// Configure API Versioning
+builder.Services.AddApiVersioning(options => {
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
+})
+.AddApiExplorer(options => {
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// Configure Swagger
+builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 
 // Configure CORS policy
 builder.Services.AddCors(options => {

@@ -17,7 +17,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMDJAbG9jYWxob3N0LmNvbSIsImp0aSI6ImVkZGM1MjA0LTAzNGEtNDBhZC1iZjgxLTY5OWNlZjVkNzc4YSIsImVtYWlsIjoidXNlcjAyQGxvY2FsaG9zdC5jb20iLCJ1aWQiOiI0YmNhZTI3Mi00NGQ3LTRiOWQtYTJlOS1kYTVkNDQ5YjEwYzYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJFbXBsb3llZSIsImV4cCI6MTc3MjU0NjIxNiwiaXNzIjoiSFJMZWF2ZU1hbmFnZW1lbnQuQXBpIiwiYXVkIjoiSFJMZWF2ZU1hbmFnZW1lbnRVc2VyIn0.kYLMF-ZnbTWK6ZkmkKa5368sNZWD2s6bwewap-faj3U",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMDJAbG9jYWxob3N0LmNvbSIsImp0aSI6IjUwMDE3YjA2LTkwNTgtNDQzMi04MTgxLTY1OTVkYTZmY2Q0OCIsImVtYWlsIjoidXNlcjAyQGxvY2FsaG9zdC5jb20iLCJ1aWQiOiI0YmNhZTI3Mi00NGQ3LTRiOWQtYTJlOS1kYTVkNDQ5YjEwYzYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJFbXBsb3llZSIsImV4cCI6MTc3MjU1NzMyOCwiaXNzIjoiSFJMZWF2ZU1hbmFnZW1lbnQuQXBpIiwiYXVkIjoiSFJMZWF2ZU1hbmFnZW1lbnRVc2VyIn0.vjyt80D7HgIdlk6O-VEQo9qMF-rIpAoLkK8ZHDsxGas",
                 "type": "text"
               }
             ],
@@ -570,6 +570,66 @@
               "path": [
                 "Auth",
                 "Register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rrefresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"jwtToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMDJAbG9jYWxob3N0LmNvbSIsImp0aSI6IjQwNTcyMjdmLTI1NDgtNGU4OS1iYjU1LWM0MWRiZWE0MTczOCIsImVtYWlsIjoidXNlcjAyQGxvY2FsaG9zdC5jb20iLCJ1aWQiOiI0YmNhZTI3Mi00NGQ3LTRiOWQtYTJlOS1kYTVkNDQ5YjEwYzYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJFbXBsb3llZSIsImV4cCI6MTc3MjU1NTUwOSwiaXNzIjoiSFJMZWF2ZU1hbmFnZW1lbnQuQXBpIiwiYXVkIjoiSFJMZWF2ZU1hbmFnZW1lbnRVc2VyIn0.Nt02dILLi8KjRBX08OfpRPz6Xqh0sZy4onlwydLL4ac\",\r\n  \"refreshToken\": \"66fe103a-6532-465f-9e1d-68c0f556c069-79da9667-f67d-4ef3-9c01-76f7e73b9f1f\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/Auth/Refresh-Token",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "Auth",
+                "Refresh-Token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMDJAbG9jYWxob3N0LmNvbSIsImp0aSI6ImU0NTEwMzZjLTU5NTAtNGRjMS05NmFlLTEyODhkMWYxNjEyNyIsImVtYWlsIjoidXNlcjAyQGxvY2FsaG9zdC5jb20iLCJ1aWQiOiI0YmNhZTI3Mi00NGQ3LTRiOWQtYTJlOS1kYTVkNDQ5YjEwYzYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJFbXBsb3llZSIsImV4cCI6MTc3MjU1NTU0NCwiaXNzIjoiSFJMZWF2ZU1hbmFnZW1lbnQuQXBpIiwiYXVkIjoiSFJMZWF2ZU1hbmFnZW1lbnRVc2VyIn0.TVWuzqEXQPDUZhmWYE5yhZMP7mDwtpXRm3epgD4V6Co",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"jwtToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMDJAbG9jYWxob3N0LmNvbSIsImp0aSI6ImU0NTEwMzZjLTU5NTAtNGRjMS05NmFlLTEyODhkMWYxNjEyNyIsImVtYWlsIjoidXNlcjAyQGxvY2FsaG9zdC5jb20iLCJ1aWQiOiI0YmNhZTI3Mi00NGQ3LTRiOWQtYTJlOS1kYTVkNDQ5YjEwYzYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJFbXBsb3llZSIsImV4cCI6MTc3MjU1NTU0NCwiaXNzIjoiSFJMZWF2ZU1hbmFnZW1lbnQuQXBpIiwiYXVkIjoiSFJMZWF2ZU1hbmFnZW1lbnRVc2VyIn0.TVWuzqEXQPDUZhmWYE5yhZMP7mDwtpXRm3epgD4V6Co\",\r\n  \"refreshToken\": \"71a9d3eb-ebfd-4254-9301-74a98a3f8f78-1e6072f3-d8e9-4808-8a16-772876585ba6\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/Auth/Logout",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "Auth",
+                "Logout"
               ]
             }
           },

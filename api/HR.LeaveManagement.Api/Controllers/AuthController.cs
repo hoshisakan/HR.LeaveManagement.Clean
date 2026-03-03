@@ -6,12 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 using HR.LeaveManagement.Application.Models.Identity;
 using HR.LeaveManagement.Application.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Asp.Versioning;
 
 
 namespace HR.LeaveManagement.Api.Controllers
 {
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiVersion("1.0")]
     [ApiController]
-    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

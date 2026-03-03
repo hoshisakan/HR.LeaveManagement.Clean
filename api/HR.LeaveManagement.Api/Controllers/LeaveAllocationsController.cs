@@ -10,13 +10,15 @@ using HR.LeaveManagement.Application.Features.LeaveAllocation.Commands.CreateLea
 using HR.LeaveManagement.Application.Features.LeaveAllocation.Commands.UpdateLeaveAllocation;
 using HR.LeaveManagement.Application.Features.LeaveAllocation.Commands.DeleteLeaveAllocation;
 using Microsoft.AspNetCore.Authorization;
+using Asp.Versioning;
 
 
 namespace HR.LeaveManagement.Api.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiVersion("1.0")]
     public class LeaveAllocationsController : ControllerBase
     {
         private readonly IMediator _mediator;

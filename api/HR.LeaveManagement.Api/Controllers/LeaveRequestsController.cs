@@ -12,13 +12,15 @@ using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.ChangeLeaveR
 using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLeaveRequest;
 using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.DeleteLeaveRequest;
 using Microsoft.AspNetCore.Authorization;
+using Asp.Versioning;
 
 
 namespace HR.LeaveManagement.Api.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiVersion("1.0")]
     public class LeaveRequestsController : ControllerBase
     {
         private readonly IMediator _mediator;

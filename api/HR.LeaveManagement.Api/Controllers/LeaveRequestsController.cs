@@ -11,10 +11,13 @@ using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.CancelLeaveR
 using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.ChangeLeaveRequestApproval;
 using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLeaveRequest;
 using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.DeleteLeaveRequest;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace HR.LeaveManagement.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class LeaveRequestsController : ControllerBase
     {
@@ -26,6 +29,7 @@ namespace HR.LeaveManagement.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<List<LeaveRequestListDto>>> Get()
         {
             var leaveRequests = await _mediator.Send(new GetLeaveRequestListQuery());
@@ -33,6 +37,7 @@ namespace HR.LeaveManagement.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<LeaveRequestDetailsDto>> Get(int id)
         {
             var leaveRequest = await _mediator.Send(new GetLeaveRequestDetailQuery { Id = id });
@@ -43,6 +48,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult> Post([FromBody] CreateLeaveRequestCommand createLeaveRequestCommand)
         {
             var result = await _mediator.Send(createLeaveRequestCommand);
@@ -53,6 +59,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<Unit>> Put(int id, [FromBody] UpdateLeaveRequestCommand updateLeaveRequestCommand)
         {
             updateLeaveRequestCommand.Id = id;
@@ -64,6 +71,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<Unit>> Delete(int id)
         {
             await _mediator.Send(new DeleteLeaveRequestCommand { Id = id });
@@ -74,6 +82,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<Unit>> Approve(int id, [FromBody] ChangeLeaveRequestApprovalCommand changeLeaveRequestApprovalCommand)
         {
             changeLeaveRequestApprovalCommand.Id = id;
@@ -85,6 +94,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<Unit>> Cancel(int id)
         {
             await _mediator.Send(new CancelLeaveRequestCommand { Id = id });

@@ -9,11 +9,13 @@ using HR.LeaveManagement.Application.Features.LeaveType.Queries.GetLeaveTypeDeta
 using HR.LeaveManagement.Application.Features.LeaveType.Commands.CreateLeaveType;
 using HR.LeaveManagement.Application.Features.LeaveType.Commands.UpdateLeaveType;
 using HR.LeaveManagement.Application.Features.LeaveType.Commands.DeleteLeaveType;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace HR.LeaveManagement.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class LeaveTypesController : ControllerBase
     {
@@ -25,6 +27,7 @@ namespace HR.LeaveManagement.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<List<LeaveTypeDto>>> Get()
         {
             var leaveTypes = await _mediator.Send(new GetLeaveTypesQuery());
@@ -32,6 +35,7 @@ namespace HR.LeaveManagement.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<LeaveTypeDetailDto>> Get(int id)
         {
             var leaveType = await _mediator.Send(new GetLeaveTypeDetailsQuery { Id = id });
@@ -42,6 +46,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult> Post([FromBody] CreateLeaveTypeCommand createLeaveTypeCommand)
         {
             var result = await _mediator.Send(createLeaveTypeCommand);
@@ -52,6 +57,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<Unit>> Put(int id, [FromBody] UpdateLeaveTypeCommand updateLeaveTypeCommand)
         {
             updateLeaveTypeCommand.Id = id;
@@ -63,6 +69,7 @@ namespace HR.LeaveManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<Unit>> Delete(int id)
         {
             await _mediator.Send(new DeleteLeaveTypeCommand { Id = id });

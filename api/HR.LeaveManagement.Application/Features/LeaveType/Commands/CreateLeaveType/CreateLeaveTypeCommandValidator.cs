@@ -22,10 +22,10 @@ namespace HR.LeaveManagement.Application.Features.LeaveType.Commands.CreateLeave
                 .MaximumLength(100).WithMessage("{PropertyName} must not exceed 100 characters.");
         
             RuleFor(p => p.DefaultDays)
-                .NotEmpty().WithMessage("{PropertyName} is required.")
                 .NotNull()
+                .WithMessage("{PropertyName} is required.")
                 .LessThan(100).WithMessage("{PropertyName} cannot exceed 100.")
-                .GreaterThan(1).WithMessage("{PropertyName} cannot be less than 1.");
+                ;
 
             RuleFor(q => q)
                 .MustAsync(LeaveTypeNameUnique)

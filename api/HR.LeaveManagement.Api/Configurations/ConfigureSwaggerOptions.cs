@@ -19,6 +19,7 @@ namespace HR.LeaveManagement.Api.Configurations
 
         public void Configure(SwaggerGenOptions options)
         {
+            // Add Swagger Documentation for each API Version
             foreach (var description in _provider.ApiVersionDescriptions)
             {
                 options.SwaggerDoc(
@@ -29,15 +30,19 @@ namespace HR.LeaveManagement.Api.Configurations
                         Description = "HR Leave Management API"
                     }
                 );
-                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                {
-                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-                    Name = "Authorization",
-                    In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
-                });
             }
+
+            // Add Security Definition for Bearer Token
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer"
+            });
+
+            // Add Security Requirement for Bearer Token
             options.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
                 {

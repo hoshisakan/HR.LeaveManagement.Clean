@@ -6,6 +6,7 @@ using FluentValidation;
 using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLeaveRequest;
 using HR.LeaveManagement.Application.Features.LeaveRequest.Shared;
 using HR.LeaveManagement.Application.Contracts.Persistence;
+using HR.LeaveManagement.Application.Identity;
 
 
 namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLeaveRequest
@@ -14,14 +15,16 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLe
     {
         private readonly ILeaveTypeRepository _leaveTypeRepository;
         private readonly ILeaveRequestRepository _leaveRequestRepository;
+        private readonly IUserService _userService;
 
-        public UpdateLeaveRequestCommandValidator(ILeaveTypeRepository leaveTypeRepository, ILeaveRequestRepository leaveRequestRepository)
+        public UpdateLeaveRequestCommandValidator(ILeaveTypeRepository leaveTypeRepository, ILeaveRequestRepository leaveRequestRepository, IUserService userService)
         {
             _leaveTypeRepository = leaveTypeRepository;
             _leaveRequestRepository = leaveRequestRepository;
+            _userService = userService;
 
             // Validate the base leave request properties
-            Include(new BaseLeaveRequestValidator(leaveTypeRepository));
+            Include(new BaseLeaveRequestValidator(leaveTypeRepository, userService));
 
             RuleFor(p => p.Id)
                 .NotNull()

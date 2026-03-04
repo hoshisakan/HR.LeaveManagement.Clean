@@ -10,6 +10,7 @@ using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.CreateLeaveR
 using HR.LeaveManagement.Application.Contracts.Logging;
 using HR.LeaveManagement.Application.Contracts.Email;
 using HR.LeaveManagement.Application.Models.Email;
+using HR.LeaveManagement.Application.Identity;
 
 
 namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.CreateLeaveRequest
@@ -21,19 +22,21 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.CreateLe
         private readonly ILeaveTypeRepository _leaveTypeRepository;
         private readonly IAppLogger<CreateLeaveRequestCommandHandler> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly IUserService _userService;
 
-        public CreateLeaveRequestCommandHandler(ILeaveRequestRepository leaveRequestRepository, ILeaveTypeRepository leaveTypeRepository, IMapper mapper, IAppLogger<CreateLeaveRequestCommandHandler> logger, IEmailSender emailSender)
+        public CreateLeaveRequestCommandHandler(ILeaveRequestRepository leaveRequestRepository, ILeaveTypeRepository leaveTypeRepository, IMapper mapper, IAppLogger<CreateLeaveRequestCommandHandler> logger, IEmailSender emailSender, IUserService userService)
         {
             _mapper = mapper;
             _leaveRequestRepository = leaveRequestRepository;
             _leaveTypeRepository = leaveTypeRepository;
             _logger = logger;
             _emailSender = emailSender;
+            _userService = userService;
         }
 
         public async Task<int> Handle(CreateLeaveRequestCommand request, CancellationToken cancellationToken)
         {
-            var validator = new CreateLeaveRequestCommandValidator(_leaveTypeRepository);
+            var validator = new CreateLeaveRequestCommandValidator(_leaveTypeRepository, _userService);
             var validationResult = await validator.ValidateAsync(request);
 
             if (validationResult.Errors.Any())

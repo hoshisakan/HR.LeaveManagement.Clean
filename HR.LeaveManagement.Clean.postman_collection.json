@@ -166,7 +166,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwianRpIjoiZWU4MGI2MTMtODc0NS00ZWM2LTg0MzUtNWYyN2M1ZWMxMjcwIiwiZW1haWwiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwidWlkIjoiZjA0OTMwNzEtZDYzMy00ZWM2LTgyMTUtMDUxMDk3YmM4YmVmMSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmF0b3IiLCJleHAiOjE3NzI1NDcwODIsImlzcyI6IkhSTGVhdmVNYW5hZ2VtZW50LkFwaSIsImF1ZCI6IkhSTGVhdmVNYW5hZ2VtZW50VXNlciJ9.RIAhwQxeq85TgohOVngO7ElclYRYAY2Ta64F1cZsOaE",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwianRpIjoiNzNkYzRiMDctZmFmNS00YWM5LWJlNzctYWI4MzgxZDExMzdiIiwiZW1haWwiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwidWlkIjoiZjA0OTMwNzEtZDYzMy00ZWM2LTgyMTUtMDUxMDk3YmM4YmVmMSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmF0b3IiLCJleHAiOjE3NzI2MTYyMzEsImlzcyI6IkhSTGVhdmVNYW5hZ2VtZW50LkFwaSIsImF1ZCI6IkhSTGVhdmVNYW5hZ2VtZW50VXNlciJ9.rCDROw1_mK7YKufASpHbL_eTK80Sr_msjcK5oiiZ8bU",
                 "type": "text"
               }
             ],
@@ -307,7 +307,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwianRpIjoiZWU4MGI2MTMtODc0NS00ZWM2LTg0MzUtNWYyN2M1ZWMxMjcwIiwiZW1haWwiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwidWlkIjoiZjA0OTMwNzEtZDYzMy00ZWM2LTgyMTUtMDUxMDk3YmM4YmVmMSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmF0b3IiLCJleHAiOjE3NzI1NDcwODIsImlzcyI6IkhSTGVhdmVNYW5hZ2VtZW50LkFwaSIsImF1ZCI6IkhSTGVhdmVNYW5hZ2VtZW50VXNlciJ9.RIAhwQxeq85TgohOVngO7ElclYRYAY2Ta64F1cZsOaE",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMDJAbG9jYWxob3N0LmNvbSIsImp0aSI6IjNlZTUzNDUwLWE4ZWYtNGI0Yi1hM2RiLWQ5ZjM0NWJlOWY1YiIsImVtYWlsIjoidXNlcjAyQGxvY2FsaG9zdC5jb20iLCJ1aWQiOiI0YmNhZTI3Mi00NGQ3LTRiOWQtYTJlOS1kYTVkNDQ5YjEwYzYiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJFbXBsb3llZSIsImV4cCI6MTc3MjYyODQ0OSwiaXNzIjoiSFJMZWF2ZU1hbmFnZW1lbnQuQXBpIiwiYXVkIjoiSFJMZWF2ZU1hbmFnZW1lbnRVc2VyIn0.K9Ren02cs5uZf9LeydYpouycf11_zeCnfRjHvGJgNdc",
                 "type": "text"
               }
             ],
@@ -492,7 +492,7 @@
       ]
     },
     {
-      "name": "Authentication",
+      "name": "Auth",
       "item": [
         {
           "name": "Login with normal user",
@@ -630,6 +630,58 @@
               "path": [
                 "Auth",
                 "Logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "GetAll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwianRpIjoiYzA4M2Y4NjgtMzU1Mi00Y2VkLWI2OGQtOGNiNTk3NDcxNjBjIiwiZW1haWwiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwidWlkIjoiZjA0OTMwNzEtZDYzMy00ZWM2LTgyMTUtMDUxMDk3YmM4YmVmMSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmF0b3IiLCJleHAiOjE3NzI2MDU0MDAsImlzcyI6IkhSTGVhdmVNYW5hZ2VtZW50LkFwaSIsImF1ZCI6IkhSTGVhdmVNYW5hZ2VtZW50VXNlciJ9.ndtPbcGmOWtI86KZoGUhjggdToZFdyG1NrO2GPYixxk",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/Users",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "Users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GetById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwianRpIjoiZGY0ZTFhMmQtM2MwNC00YmQ2LThhZmQtMTk1ZGZjMjE2MDdhIiwiZW1haWwiOiJhZG1pbkBsb2NhbGhvc3QuY29tIiwidWlkIjoiZjA0OTMwNzEtZDYzMy00ZWM2LTgyMTUtMDUxMDk3YmM4YmVmMSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluaXN0cmF0b3IiLCJleHAiOjE3NzI2MDQ0NzIsImlzcyI6IkhSTGVhdmVNYW5hZ2VtZW50LkFwaSIsImF1ZCI6IkhSTGVhdmVNYW5hZ2VtZW50VXNlciJ9.GUN7YL57Y9E-Fp5MO64Su7iP7gYiOvv_VfQkUVNjwbI",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/Users/4bcae272-44d7-4b9d-a2e9-da5d449b10c6",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "Users",
+                "4bcae272-44d7-4b9d-a2e9-da5d449b10c6"
               ]
             }
           },

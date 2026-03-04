@@ -27,8 +27,7 @@ namespace HR.LeaveManagement.Application.Features.LeaveType.Commands.UpdateLeave
                 .MaximumLength(100).WithMessage("{PropertyName} must not exceed 100 characters.");
         
             RuleFor(p => p.DefaultDays)
-                .LessThanOrEqualTo(100).WithMessage("{PropertyName} cannot exceed 100.")
-                .GreaterThanOrEqualTo(1).WithMessage("{PropertyName} cannot be less than 1.");
+                .LessThanOrEqualTo(100).WithMessage("{PropertyName} cannot exceed 100.");
 
             RuleFor(q => q)
                 .MustAsync(LeaveTypeNameUnique)

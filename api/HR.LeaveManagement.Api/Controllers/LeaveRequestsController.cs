@@ -13,6 +13,8 @@ using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLeaveR
 using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.DeleteLeaveRequest;
 using Microsoft.AspNetCore.Authorization;
 using Asp.Versioning;
+using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 
 
 namespace HR.LeaveManagement.Api.Controllers
@@ -24,17 +26,26 @@ namespace HR.LeaveManagement.Api.Controllers
     public class LeaveRequestsController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly ILogger<LeaveRequestsController> _logger;
 
-        public LeaveRequestsController(IMediator mediator)
+        public LeaveRequestsController(IMediator mediator, ILogger<LeaveRequestsController> logger)
         {
             _mediator = mediator;
+            _logger = logger;
         }
 
         [HttpGet]
         [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<List<LeaveRequestListDto>>> Get()
         {
-            var leaveRequests = await _mediator.Send(new GetLeaveRequestListQuery());
+            var userId = User.FindFirst("uid")?.Value;
+
+            if (userId == null)
+                return Unauthorized();
+
+            _logger.LogInformation("User {UserId} is requesting leave requests", userId);
+
+            var leaveRequests = await _mediator.Send(new GetLeaveRequestListQuery { UserId = userId });
             return Ok(leaveRequests);
         }
 

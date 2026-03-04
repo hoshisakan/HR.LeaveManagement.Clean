@@ -9,5 +9,6 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Queries.GetLeaveR
 {
     public class GetLeaveRequestListQuery : IRequest<List<LeaveRequestListDto>>
     {
+        public string UserId { get; set; }
     }
 }

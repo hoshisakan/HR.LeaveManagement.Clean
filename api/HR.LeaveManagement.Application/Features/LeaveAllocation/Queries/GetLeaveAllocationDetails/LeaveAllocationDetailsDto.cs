@@ -15,5 +15,6 @@ namespace HR.LeaveManagement.Application.Features.LeaveAllocation.Queries.GetLea
         public LeaveTypeDto LeaveType { get; set; }
         public int LeaveTypeId { get; set; }
         public int Period { get; set; }
+        public string EmployeeId { get; set; }
     }
 }

@@ -11,5 +11,6 @@ namespace HR.LeaveManagement.Application.Identity
     {
         Task<List<Employee>> GetEmployees();
         Task<Employee> GetEmployee(string userId);
+        Task<bool> IsEmployee(string userId);
     }
 }

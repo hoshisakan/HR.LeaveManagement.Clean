@@ -34,6 +34,9 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.ChangeLe
 
             if (leaveRequest == null)
                 throw new NotFoundException(nameof(LeaveRequest), request.Id);
+            
+            if  (leaveRequest.Cancelled)
+                throw new BadRequestException("This leave request has been cancelled.");
 
             leaveRequest.Approved = request.Approved;
             await _leaveRequestRepository.UpdateAsync(leaveRequest);

@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using HR.LeaveManagement.Application.Exceptions;
 using System.Net;
 using HR.LeaveManagement.Api.Models;
-using Microsoft.Extensions.Logging;
 
 
 namespace HR.LeaveManagement.Api.Middleware

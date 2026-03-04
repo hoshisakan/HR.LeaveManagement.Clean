@@ -12,6 +12,8 @@ using HR.LeaveManagement.Api.Configurations;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.HttpOverrides;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -47,12 +49,21 @@ builder.Services.AddApiVersioning(options => {
 // Configure Swagger
 builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 
+// Configure Forwarded Headers
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Configure CORS policy
 builder.Services.AddCors(options => {
     options.AddPolicy("all", policy => {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5173", "https://localhost")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -61,6 +72,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
+
+app.UseCors("all");
 
 app.UseMiddleware<ExceptionMiddleware>();
 
@@ -72,8 +87,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseCors("all");
 
 app.UseAuthentication();
 

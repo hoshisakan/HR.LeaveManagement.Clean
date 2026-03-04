@@ -40,5 +40,13 @@ namespace HR.LeaveManagement.Identity.Services
                 throw new NotFoundException(nameof(ApplicationUser), userId);
             return new Employee { Id = user.Id, Email = user.Email, FirstName = user.FirstName, LastName = user.LastName };
         }
+
+        public async Task<bool> IsEmployee(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                throw new NotFoundException(nameof(ApplicationUser), userId);
+            return await _userManager.IsInRoleAsync(user, "Employee");
+        }
     }
 }

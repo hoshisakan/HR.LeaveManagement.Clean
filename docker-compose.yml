@@ -20,7 +20,7 @@ services:
             - ./conf/nginx/conf.d:/etc/nginx/conf.d
             - ./logs/nginx:/var/log/nginx
             - ./certs/nginx:/etc/nginx/ssl
-            # - ./frontend/hr-leave-management-ui/dist:/usr/share/nginx/html
+            - ./frontend/hr-leave-management-ui/dist:/usr/share/nginx/html
             # - ./static/Images:/deploy/api/Images:rw
         ports:
             - ${NGINX_HTTP_OUTER_PORT}:${NGINX_HTTP_INNER_PORT}

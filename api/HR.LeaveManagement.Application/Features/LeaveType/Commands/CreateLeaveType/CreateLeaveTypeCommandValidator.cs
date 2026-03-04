@@ -24,7 +24,7 @@ namespace HR.LeaveManagement.Application.Features.LeaveType.Commands.CreateLeave
             RuleFor(p => p.DefaultDays)
                 .NotNull()
                 .WithMessage("{PropertyName} is required.")
-                .LessThan(100).WithMessage("{PropertyName} cannot exceed 100.")
+                .LessThanOrEqualTo(100).WithMessage("{PropertyName} cannot exceed 100.");
                 ;
 
             RuleFor(q => q)

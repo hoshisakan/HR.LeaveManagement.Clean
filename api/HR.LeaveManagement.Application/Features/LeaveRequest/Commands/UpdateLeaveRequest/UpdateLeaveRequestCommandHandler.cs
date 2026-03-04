@@ -10,6 +10,7 @@ using HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLeaveR
 using HR.LeaveManagement.Application.Contracts.Logging;
 using HR.LeaveManagement.Application.Contracts.Email;
 using HR.LeaveManagement.Application.Models.Email;
+using HR.LeaveManagement.Application.Identity;
 
 
 namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLeaveRequest
@@ -21,14 +22,16 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLe
         private readonly ILeaveTypeRepository _leaveTypeRepository;
         private readonly IAppLogger<UpdateLeaveRequestCommandHandler> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly IUserService _userService;
 
-        public UpdateLeaveRequestCommandHandler(ILeaveRequestRepository leaveRequestRepository, ILeaveTypeRepository leaveTypeRepository, IMapper mapper, IAppLogger<UpdateLeaveRequestCommandHandler> logger, IEmailSender emailSender)
+        public UpdateLeaveRequestCommandHandler(ILeaveRequestRepository leaveRequestRepository, ILeaveTypeRepository leaveTypeRepository, IMapper mapper, IAppLogger<UpdateLeaveRequestCommandHandler> logger, IEmailSender emailSender, IUserService userService)
         {
             _mapper = mapper;
             _leaveRequestRepository = leaveRequestRepository;
             _leaveTypeRepository = leaveTypeRepository;
             _logger = logger;
             _emailSender = emailSender;
+            _userService = userService;
         }
 
         public async Task<Unit> Handle(UpdateLeaveRequestCommand request, CancellationToken cancellationToken)
@@ -38,7 +41,7 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.UpdateLe
             if (leaveRequest == null)
                 throw new NotFoundException(nameof(LeaveRequest), request.Id);
 
-            var validator = new UpdateLeaveRequestCommandValidator(_leaveTypeRepository, _leaveRequestRepository);
+            var validator = new UpdateLeaveRequestCommandValidator(_leaveTypeRepository, _leaveRequestRepository, _userService);
             var validationResult = await validator.ValidateAsync(request);
 
             if (validationResult.Errors.Any())

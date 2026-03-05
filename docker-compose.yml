@@ -96,6 +96,7 @@ services:
 
 networks:
   hr_leave_management_network:
+    name: hr_leave_management_network
     driver: bridge
     ipam:
       config:

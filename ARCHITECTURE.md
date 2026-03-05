@@ -4,6 +4,47 @@
 
 ## 系統分層與模組說明（摘要表）
 
+```mermaid
+flowchart TD
+  subgraph Top ["Top Layer: 系統進入點"]
+    API["HR.LeaveManagement.Api"]
+  end
+
+  subgraph Impl ["Infrastructure Implementations (具體實作)"]
+    direction LR
+    Persist["HR.LeaveManagement.Persistence"]
+    Infra["HR.LeaveManagement.Infrastructure"]
+    Ident["HR.LeaveManagement.Identity"]
+  end
+
+  subgraph Service ["Service Layer: 協定與用例 (UEFI Protocol 類比)"]
+    App["HR.LeaveManagement.Application<br/>(MediatR 命令 / DTOs / 抽象介面)"]
+  end
+
+  subgraph Core ["Core Layer: 核心邏輯 (Platform Independent)"]
+    Domain["HR.LeaveManagement.Domain<br/>(純業務實體與規則)"]
+  end
+
+  %% 依賴流向 (Dependency Flow)
+  API ==> App
+  App ==> Domain
+
+  %% 依賴反轉 (Dependency Inversion) - 實作指向介面
+  Persist -.->|Implements| App
+  Infra -.->|Implements| App
+  Ident -.->|Implements| App
+
+  %% 實作對核心的引用
+  Persist --> Domain
+  Ident --> Domain
+
+  %% 樣式美化
+  style Core fill:#f0e6ff,stroke:#5b21b6,stroke-width:4px
+  style Service fill:#e1f5fe,stroke:#01579b
+  style Top fill:#fff3e0,stroke:#e65100
+  style Impl fill:#f5f5f5,stroke:#9e9e9e
+```
+
 | 層級 / 模組 | 核心責任 | 與其他層的關係 | 平台依賴性與備註 |
 |------------|----------|----------------|------------------|
 | **Domain（HR.LeaveManagement.Domain）** | 定義請假相關的核心概念（請假類型、請假申請、配額等）與業務規則，維持系統最穩定、不易改變的知識。 | 被其他所有後端模組依賴，但不反向依賴任何外部實作。 | 嚴格避免依賴資料庫、Web 框架或第三方套件，保持高度與平台無關，可類比為「純演算法與資料結構層」，對應硬體世界中的邏輯設計而非具體裝置。 |

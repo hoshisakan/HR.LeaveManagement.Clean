@@ -74,6 +74,58 @@ flowchart TD
 
 ---
 
+## Leave Management 核心資料模型（ER 圖）
+
+以下 **Entity Relationship Diagram** 專注於請假業務核心：假別定義、天數配給與請假申請。實體與欄位對應 `HR.LeaveManagement.Domain` 與 Persistence 實際結構。
+
+```mermaid
+erDiagram
+  LeaveTypes {
+    int Id PK "主鍵"
+    string Name "假別名稱"
+    int DefaultDays "預設天數"
+    datetime DateCreated
+    datetime DateModified
+  }
+
+  LeaveAllocations {
+    int Id PK "主鍵"
+    int LeaveTypeId FK "關聯假別"
+    string EmployeeId "連結使用者系統"
+    int NumberOfDays "配給天數"
+    int Period "年度/期間"
+    datetime DateCreated
+    datetime DateModified
+  }
+
+  LeaveRequests {
+    int Id PK "主鍵"
+    int LeaveTypeId FK "關聯假別"
+    string RequestingEmployeeId "連結使用者系統"
+    datetime StartDate "請假起日"
+    datetime EndDate "請假迄日"
+    datetime DateRequested "申請日"
+    string RequestComments "備註"
+    bool Approved "核准狀態"
+    bool Cancelled "是否取消"
+    datetime DateCreated
+    datetime DateModified
+  }
+
+  LeaveTypes ||--o{ LeaveAllocations : "1:N 假別對應多筆配給"
+  LeaveTypes ||--o{ LeaveRequests : "1:N 假別對應多筆申請"
+```
+
+| 實體 | 說明 |
+|------|------|
+| **LeaveTypes** | 假別定義：名稱、預設天數，為配給與申請的唯一定義來源。 |
+| **LeaveAllocations** | 天數配給：依假別與員工（`EmployeeId`）在特定 `Period` 配給可請天數。 |
+| **LeaveRequests** | 請假申請：依假別與申請人（`RequestingEmployeeId`）記錄起迄日、核准與取消狀態。 |
+
+**使用者連結**：`LeaveAllocations.EmployeeId` 與 `LeaveRequests.RequestingEmployeeId` 均指向身分系統（Identity）中的使用者，不在此 ER 圖內重複建立使用者實體，僅標註為對「使用者系統」的參照。
+
+---
+
 ## 設計原則說明
 
 ### 1. 解耦（Decoupling）：Domain 層不依賴外部工具

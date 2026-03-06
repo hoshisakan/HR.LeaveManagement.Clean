@@ -6,12 +6,13 @@
 
 ```mermaid
 flowchart TD
-    %% 定義外部工具層（橫向排列）
-    subgraph External_Tools ["外部工具與接口 (外層)"]
+    %% 定義外部工具層（橫向排列，現在有四個主要組件）
+    subgraph External_Tools ["外部工具與接口 (外層實作)"]
         direction LR
         API["API Layer"]
         DB["Persistence (DB)"]
         AUTH["Identity (Auth)"]
+        INFRA["Infrastructure (Email/Logs)"]
     end
 
     %% 定義核心邏輯層
@@ -20,10 +21,11 @@ flowchart TD
     %% 定義最核心實體層
     DOMAIN(("Domain Layer<br/>(Entities)"))
 
-    %% 依賴方向：全部指向中間的核心
+    %% 依賴方向：全部透過介面指向中間的核心
     API -- "DIP" --> APP
     DB -- "DIP" --> APP
     AUTH -- "DIP" --> APP
+    INFRA -- "DIP" --> APP
     
     %% 邏輯指向實體
     APP --> DOMAIN

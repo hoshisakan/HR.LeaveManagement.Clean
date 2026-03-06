@@ -2,94 +2,36 @@
 
 ---
 
-## 系統分層與模組說明（摘要表）
+## 架構圖
 
 ```mermaid
 flowchart TD
-  subgraph Top ["Top Layer: 系統進入點"]
-    API["HR.LeaveManagement.Api"]
-  end
+    %% 定義外部工具層（橫向排列）
+    subgraph External_Tools ["外部工具與接口 (外層)"]
+        direction LR
+        API["API Layer"]
+        DB["Persistence (DB)"]
+        AUTH["Identity (Auth)"]
+    end
 
-  subgraph Impl ["Infrastructure Implementations (具體實作)"]
-    direction LR
-    Persist["HR.LeaveManagement.Persistence"]
-    Infra["HR.LeaveManagement.Infrastructure"]
-    Ident["HR.LeaveManagement.Identity"]
-  end
+    %% 定義核心邏輯層
+    APP(("Application Layer<br/>(Logic / MediatR)"))
 
-  subgraph Service ["Service Layer: 協定與用例 (UEFI Protocol 類比)"]
-    App["HR.LeaveManagement.Application<br/>(MediatR 命令 / DTOs / 抽象介面)"]
-  end
+    %% 定義最核心實體層
+    DOMAIN(("Domain Layer<br/>(Entities)"))
 
-  subgraph Core ["Core Layer: 核心邏輯 (Platform Independent)"]
-    Domain["HR.LeaveManagement.Domain<br/>(純業務實體與規則)"]
-  end
+    %% 依賴方向：全部指向中間的核心
+    API -- "DIP" --> APP
+    DB -- "DIP" --> APP
+    AUTH -- "DIP" --> APP
+    
+    %% 邏輯指向實體
+    APP --> DOMAIN
 
-  %% 依賴流向 (Dependency Flow)
-  API ==> App
-  App ==> Domain
-
-  %% 依賴反轉 (Dependency Inversion) - 實作指向介面
-  Persist -.->|Implements| App
-  Infra -.->|Implements| App
-  Ident -.->|Implements| App
-
-  %% 實作對核心的引用
-  Persist --> Domain
-  Ident --> Domain
-
-  %% 樣式美化
-  style Core fill:#f0e6ff,stroke:#5b21b6,stroke-width:4px
-  style Service fill:#e1f5fe,stroke:#01579b
-  style Top fill:#fff3e0,stroke:#e65100
-  style Impl fill:#f5f5f5,stroke:#9e9e9e
-```
-
-### Clean Architecture 同心圓圖（由內而外）
-
-越靠近中心越**平台無關**、越外層越接近**框架/基礎設施**。箭頭方向表示 **Dependency direction: Inwards**（依賴向內）。
-
-```mermaid
-flowchart TB
-  %% Core (中心)
-  DomainCore((Domain Layer<br/>核心))
-  DomainCoreNote["Entities: LeaveType, LeaveRequest<br/>Common: BaseEntity"]
-
-  %% Application (內圈)
-  ApplicationLayer((Application Layer<br/>邏輯))
-  ApplicationNote["MediatR: Commands / Queries<br/>DTOs<br/>Contracts: Interfaces"]
-
-  %% External implementations (外圈)
-  subgraph ExternalImpl["Infrastructure / Persistence / Identity<br/>(外部實作)"]
-    Persistence["Persistence<br/>EF Core / SQL Server"]
-    Identity["Identity<br/>ASP.NET Core Identity / JWT Token / Roles"]
-    Infrastructure["Infrastructure<br/>Email Service / Logging (Serilog)"]
-  end
-
-  %% API entry (最外層)
-  ApiLayer["API Layer (入口)<br/>Controllers / Middleware (Exception Handling)"]
-
-  %% Dependency direction: Inwards
-  ApiLayer --> ApplicationLayer
-  ApplicationLayer --> DomainCore
-
-  %% Dependency inversion: implementations depend on Application contracts
-  Persistence -.->|implements contracts| ApplicationLayer
-  Identity -.->|implements contracts| ApplicationLayer
-  Infrastructure -.->|implements contracts| ApplicationLayer
-
-  %% Notes (non-dependency annotations)
-  DomainCore --- DomainCoreNote
-  ApplicationLayer --- ApplicationNote
-
-  %% Styling
-  classDef core fill:#f0e6ff,stroke:#5b21b6,stroke-width:3px,color:#111827;
-  classDef outer fill:#f3f4f6,stroke:#6b7280,color:#111827;
-  classDef api fill:#fff7ed,stroke:#ea580c,color:#111827;
-  class DomainCore core;
-  class ApplicationLayer core;
-  class Persistence,Identity,Infrastructure outer;
-  class ApiLayer api;
+    %% 樣式設定
+    style DOMAIN fill:#f9f,stroke:#333,stroke-width:2px
+    style APP fill:#bbf,stroke:#333,stroke-width:2px
+    style External_Tools fill:none,stroke:#666,stroke-dasharray: 5 5
 ```
 
 #### Identity 與 Application 的解耦（Interface-Based / Dependency Inversion）

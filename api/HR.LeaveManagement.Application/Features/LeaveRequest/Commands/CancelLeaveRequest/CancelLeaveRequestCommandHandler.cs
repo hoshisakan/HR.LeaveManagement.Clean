@@ -33,6 +33,9 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.CancelLe
             if (leaveRequest == null)
                 throw new NotFoundException(nameof(LeaveRequest), request.Id);
 
+            if (!request.IsAdministrator && leaveRequest.RequestingEmployeeId != request.UserId)
+                throw new NotFoundException(nameof(LeaveRequest), request.Id);
+
             leaveRequest.Cancelled = true;
             await _leaveRequestRepository.UpdateAsync(leaveRequest);
 

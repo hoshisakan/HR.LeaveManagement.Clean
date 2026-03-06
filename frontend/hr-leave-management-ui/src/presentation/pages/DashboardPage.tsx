@@ -10,6 +10,7 @@ import { leaveTypeService } from '../../infrastructure/services/leaveTypeService
 import { leaveAllocationService } from '../../infrastructure/services/leaveAllocationService'
 import { leaveRequestService } from '../../infrastructure/services/leaveRequestService'
 import { userService } from '../../infrastructure/services/userService'
+import { isAdminUser } from '../../infrastructure/services/authService'
 import type { LeaveRequestSummary } from '../../domain/entities/LeaveRequest'
 import { useToast } from '../components/ui/ToastProvider'
 
@@ -25,6 +26,7 @@ export function DashboardPage() {
   const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [leaveTypesCount, setLeaveTypesCount] = useState(0)
   const [allocationsCount, setAllocationsCount] = useState(0)
   const [employeeCount, setEmployeeCount] = useState(0)
@@ -34,19 +36,25 @@ export function DashboardPage() {
   const [recentRequests, setRecentRequests] = useState<LeaveRequestSummary[]>([])
 
   useEffect(() => {
+    const admin = isAdminUser()
+    setIsAdmin(admin)
+
     async function load() {
       setLoading(true)
       try {
-        const [types, allocations, requests, users] = await Promise.all([
+        const [types, allocations, requests] = await Promise.all([
           leaveTypeService.getAll(),
           leaveAllocationService.getAll(),
           leaveRequestService.getAll(),
-          userService.getUsers(),
         ])
 
         setLeaveTypesCount(types.length)
         setAllocationsCount(allocations.length)
-        setEmployeeCount(users.length)
+
+        if (admin) {
+          const users = await userService.getUsers()
+          setEmployeeCount(users.length)
+        }
 
         const total = requests.length
         const pending = requests.filter((r) => r.approved === null).length
@@ -84,12 +92,16 @@ export function DashboardPage() {
       annotation: 'Approved = null',
       color: 'text-amber-600',
     },
-    {
-      label: '員工數',
-      value: loading ? '—' : String(employeeCount),
-      annotation: 'UsersController.GetUsers()',
-      color: 'text-sky-600',
-    },
+    ...(isAdmin
+      ? [
+          {
+            label: '員工數',
+            value: loading ? '—' : String(employeeCount),
+            annotation: 'UsersController.GetUsers()',
+            color: 'text-sky-600',
+          },
+        ]
+      : []),
     {
       label: '核准率',
       value: loading ? '—' : approvedRate,
@@ -111,9 +123,9 @@ export function DashboardPage() {
               歡迎來到 HR Leave Dashboard
             </h1>
             <p className="mt-2 max-w-xl text-xs text-emerald-50/90 md:text-sm">
-              這裡整合了 LeaveTypesController、LeaveAllocationsController、
-              LeaveRequestsController 與 UsersController 的資料，
-              讓你即時掌握請假與配額狀態。
+              這裡整合了 LeaveTypesController、LeaveAllocationsController 與
+              LeaveRequestsController 的資料，讓你即時掌握請假與配額狀態。
+              {isAdmin && '（管理員模式下會額外載入 UsersController 統計資訊）'}
             </p>
           </div>
           <Button

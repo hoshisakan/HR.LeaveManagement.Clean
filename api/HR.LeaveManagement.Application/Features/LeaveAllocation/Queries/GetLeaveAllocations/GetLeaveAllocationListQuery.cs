@@ -10,9 +10,10 @@ namespace HR.LeaveManagement.Application.Features.LeaveAllocation.Queries.GetLea
 {
     public class GetLeaveAllocationListQuery : IRequest<List<LeaveAllocationDto>>
     {
-
+        public string? UserId { get; set; }
+        public bool IsAdministrator { get; set; }
     }
 
     // alternative way to define the query
-    // public record GetLeaveAllocationListQuery() : IRequest<List<LeaveAllocationDto>>;
+    // public record GetLeaveAllocationListQuery(string? UserId, bool IsAdministrator) : IRequest<List<LeaveAllocationDto>>;
 }

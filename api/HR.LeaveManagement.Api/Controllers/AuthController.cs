@@ -52,6 +52,9 @@ namespace HR.LeaveManagement.Api.Controllers
         [Authorize]
         public async Task<IActionResult> Logout([FromBody] TokenRequest request)
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.RefreshToken))
+                return BadRequest("RefreshToken is required.");
+
             await _authService.LogoutAsync(request.RefreshToken);
             return Ok("Logged out successfully!");
         }

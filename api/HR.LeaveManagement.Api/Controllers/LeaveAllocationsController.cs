@@ -32,7 +32,17 @@ namespace HR.LeaveManagement.Api.Controllers
         [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<List<LeaveAllocationDto>>> Get()
         {
-            var leaveAllocations = await _mediator.Send(new GetLeaveAllocationListQuery());
+            var userId = User.FindFirst("uid")?.Value;
+            if (userId == null)
+                return Unauthorized();
+
+            var leaveAllocations = await _mediator.Send(
+                new GetLeaveAllocationListQuery 
+                {
+                    UserId = userId,
+                    IsAdministrator = User.IsInRole("Administrator") 
+                }
+            );
             return Ok(leaveAllocations);
         }
         
@@ -40,7 +50,18 @@ namespace HR.LeaveManagement.Api.Controllers
         [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<LeaveAllocationDetailsDto>> Get(int id)
         {
-            var leaveAllocation = await _mediator.Send(new GetLeaveAllocationDetailQuery { Id = id });
+            var userId = User.FindFirst("uid")?.Value;
+            if (userId == null)
+                return Unauthorized();
+
+            var leaveAllocation = await _mediator.Send(
+                new GetLeaveAllocationDetailQuery 
+                {
+                    Id = id,
+                    UserId = userId,
+                    IsAdministrator = User.IsInRole("Administrator")
+                }
+            );
             return Ok(leaveAllocation);
         }
         

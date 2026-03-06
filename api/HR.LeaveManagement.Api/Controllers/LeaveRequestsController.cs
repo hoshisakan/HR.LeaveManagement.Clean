@@ -53,7 +53,18 @@ namespace HR.LeaveManagement.Api.Controllers
         [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<LeaveRequestDetailsDto>> Get(int id)
         {
-            var leaveRequest = await _mediator.Send(new GetLeaveRequestDetailQuery { Id = id });
+            var userId = User.FindFirst("uid")?.Value;
+            if (userId == null)
+                return Unauthorized();
+
+            var leaveRequest = await _mediator.Send(
+                new GetLeaveRequestDetailQuery
+                {
+                    Id = id,
+                    UserId = userId,
+                    IsAdministrator = User.IsInRole("Administrator")
+                }
+            );
             return Ok(leaveRequest);
         }
         
@@ -64,6 +75,12 @@ namespace HR.LeaveManagement.Api.Controllers
         [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult> Post([FromBody] CreateLeaveRequestCommand createLeaveRequestCommand)
         {
+            var userId = User.FindFirst("uid")?.Value;
+
+            if (userId == null)
+                return Unauthorized();
+
+            createLeaveRequestCommand.RequestingEmployeeId = userId;
             var result = await _mediator.Send(createLeaveRequestCommand);
             return CreatedAtAction(nameof(Get), new { id = result }, new { id = result });
         }
@@ -75,7 +92,12 @@ namespace HR.LeaveManagement.Api.Controllers
         [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<Unit>> Put(int id, [FromBody] UpdateLeaveRequestCommand updateLeaveRequestCommand)
         {
+            var userId = User.FindFirst("uid")?.Value;
+            if (userId == null)
+                return Unauthorized();
+
             updateLeaveRequestCommand.Id = id;
+            updateLeaveRequestCommand.RequestingEmployeeId = userId;
             await _mediator.Send(updateLeaveRequestCommand);
             return NoContent();
         }
@@ -110,7 +132,17 @@ namespace HR.LeaveManagement.Api.Controllers
         [Authorize(Roles = "Administrator,Employee")]
         public async Task<ActionResult<Unit>> Cancel(int id)
         {
-            await _mediator.Send(new CancelLeaveRequestCommand { Id = id });
+            var userId = User.FindFirst("uid")?.Value;
+            if (userId == null)
+                return Unauthorized();
+
+            await _mediator.Send(
+                new CancelLeaveRequestCommand {
+                    Id = id,
+                    UserId = userId,
+                    IsAdministrator = User.IsInRole("Administrator")
+                }
+            );
             return NoContent();
         }
     }

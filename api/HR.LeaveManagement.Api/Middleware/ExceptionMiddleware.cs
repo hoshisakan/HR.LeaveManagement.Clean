@@ -51,7 +51,7 @@ namespace HR.LeaveManagement.Api.Middleware
                         Type = nameof(BadRequestException),
                         Errors = badRequestException.ValidationErrors
                     };
-                    _logger.LogError(ex, "Bad Request Exception: {Message}", badRequestException.Message);
+                    _logger.LogWarning(ex, "Bad Request Exception: {Message}", badRequestException.Message);
                     break;
                 case NotFoundException notFoundException:
                     statusCode = HttpStatusCode.NotFound;
@@ -62,7 +62,17 @@ namespace HR.LeaveManagement.Api.Middleware
                         Detail = notFoundException.InnerException?.Message,
                         Type = nameof(NotFoundException), 
                     };
-                    _logger.LogError(ex, "NotFoundException: {Message}", notFoundException.Message);
+                    _logger.LogWarning(ex, "NotFoundException: {Message}", notFoundException.Message);
+                    break;
+                case UnauthorizedException unauthorizedException:
+                    statusCode = HttpStatusCode.Unauthorized;  // 401
+                    error = new CustomValidationProblemDetails
+                    {
+                        Title = unauthorizedException.Message,
+                        Status = (int)statusCode,
+                        Type = nameof(UnauthorizedException),
+                    };
+                    _logger.LogWarning(unauthorizedException, "Unauthorized: {Message}", unauthorizedException.Message);
                     break;
                 default:
                     statusCode = HttpStatusCode.InternalServerError;
@@ -73,7 +83,7 @@ namespace HR.LeaveManagement.Api.Middleware
                         Detail = ex.StackTrace,
                         Type = nameof(HttpStatusCode.InternalServerError),
                     };
-                    _logger.LogError(ex, "Exception: {Message}", ex.Message);
+                    _logger.LogWarning(ex, "Exception: {Message}", ex.Message);
                     break;
             }
 

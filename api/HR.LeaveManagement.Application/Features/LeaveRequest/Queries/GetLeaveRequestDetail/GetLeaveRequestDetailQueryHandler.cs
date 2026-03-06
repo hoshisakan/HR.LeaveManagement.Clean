@@ -7,6 +7,7 @@ using AutoMapper;
 using HR.LeaveManagement.Application.Contracts.Persistence;
 using HR.LeaveManagement.Application.Contracts.Logging;
 using HR.LeaveManagement.Application.Features.LeaveRequest.Queries.GetLeaveRequestDetail;
+using HR.LeaveManagement.Application.Exceptions;
 
 
 namespace HR.LeaveManagement.Application.Features.LeaveRequest.Queries.GetLeaveRequestDetail
@@ -27,6 +28,13 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Queries.GetLeaveR
         public async Task<LeaveRequestDetailsDto> Handle(GetLeaveRequestDetailQuery request, CancellationToken cancellationToken)
         {
             var leaveRequest = await _leaveRequestRepository.GetLeaveRequestWithDetails(request.Id);
+            
+            if (leaveRequest == null)
+                throw new NotFoundException(nameof(LeaveRequest), request.Id);
+            
+            if (!request.IsAdministrator && leaveRequest.RequestingEmployeeId != request.UserId)
+                throw new NotFoundException(nameof(LeaveRequest), request.Id);
+            
             return _mapper.Map<LeaveRequestDetailsDto>(leaveRequest);
         }
     }

@@ -10,5 +10,7 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.CancelLe
     public class CancelLeaveRequestCommand : IRequest<Unit>
     {
         public int Id { get; set; }
+        public string? UserId { get; set; }
+        public bool IsAdministrator { get; set; }
     }
 }

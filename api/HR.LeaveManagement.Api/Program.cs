@@ -57,10 +57,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+var corsSection = builder.Configuration.GetSection("Cors");
+var policyName = corsSection["PolicyName"] ?? "Default";
+var origins = corsSection.GetSection("Origins").Get<string[]>() ?? Array.Empty<string>();
+
 // Configure CORS policy
 builder.Services.AddCors(options => {
-    options.AddPolicy("all", policy => {
-        policy.WithOrigins("http://localhost:5173", "https://localhost")
+    options.AddPolicy(policyName, policy => {
+        policy.WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -75,7 +79,7 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
-app.UseCors("all");
+app.UseCors(policyName);
 
 app.UseMiddleware<ExceptionMiddleware>();
 

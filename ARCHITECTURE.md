@@ -45,6 +45,63 @@ flowchart TD
   style Impl fill:#f5f5f5,stroke:#9e9e9e
 ```
 
+### Clean Architecture 同心圓圖（由內而外）
+
+越靠近中心越**平台無關**、越外層越接近**框架/基礎設施**。箭頭方向表示 **Dependency direction: Inwards**（依賴向內）。
+
+```mermaid
+flowchart TB
+  %% Core (中心)
+  DomainCore((Domain Layer<br/>核心))
+  DomainCoreNote["Entities: LeaveType, LeaveRequest<br/>Common: BaseEntity"]
+
+  %% Application (內圈)
+  ApplicationLayer((Application Layer<br/>邏輯))
+  ApplicationNote["MediatR: Commands / Queries<br/>DTOs<br/>Contracts: Interfaces"]
+
+  %% External implementations (外圈)
+  subgraph ExternalImpl["Infrastructure / Persistence / Identity<br/>(外部實作)"]
+    Persistence["Persistence<br/>EF Core / SQL Server"]
+    Identity["Identity<br/>ASP.NET Core Identity / JWT Token / Roles"]
+    Infrastructure["Infrastructure<br/>Email Service / Logging (Serilog)"]
+  end
+
+  %% API entry (最外層)
+  ApiLayer["API Layer (入口)<br/>Controllers / Middleware (Exception Handling)"]
+
+  %% Dependency direction: Inwards
+  ApiLayer --> ApplicationLayer
+  ApplicationLayer --> DomainCore
+
+  %% Dependency inversion: implementations depend on Application contracts
+  Persistence -.->|implements contracts| ApplicationLayer
+  Identity -.->|implements contracts| ApplicationLayer
+  Infrastructure -.->|implements contracts| ApplicationLayer
+
+  %% Notes (non-dependency annotations)
+  DomainCore --- DomainCoreNote
+  ApplicationLayer --- ApplicationNote
+
+  %% Styling
+  classDef core fill:#f0e6ff,stroke:#5b21b6,stroke-width:3px,color:#111827;
+  classDef outer fill:#f3f4f6,stroke:#6b7280,color:#111827;
+  classDef api fill:#fff7ed,stroke:#ea580c,color:#111827;
+  class DomainCore core;
+  class ApplicationLayer core;
+  class Persistence,Identity,Infrastructure outer;
+  class ApiLayer api;
+```
+
+#### Identity 與 Application 的解耦（Interface-Based / Dependency Inversion）
+
+在此專案中，**Application 層先定義協定（Contracts）**，Identity 層僅提供實作，避免核心邏輯依賴具體身分框架：
+
+- **介面定義位置（Application）**：`HR.LeaveManagement.Application.Identity` 內的 `IAuthService`、`IUserService` 定義了「登入、換發 Token、取得員工資訊」等能力的抽象契約。
+- **實作位置（Identity）**：`HR.LeaveManagement.Identity` 內的 `AuthService`、`UserService` 依照上述介面實作 JWT、角色與使用者存取。
+- **組裝位置（API）**：由 `HR.LeaveManagement.Identity.IdentityServicesRegistration.AddIdentityServices(...)` 將 `IAuthService` / `IUserService` 以 DI 綁定到具體實作，讓 API 入口在執行期完成組裝。
+
+因此，Application 的用例/規則只面向 `IAuthService` / `IUserService`，可在不影響核心邏輯的前提下替換身分實作（例如更換 Token 策略、帳號系統或外部 IdP）。
+
 | 層級 / 模組 | 核心責任 | 與其他層的關係 | 平台依賴性與備註 |
 |------------|----------|----------------|------------------|
 | **Domain（HR.LeaveManagement.Domain）** | 定義請假相關的核心概念（請假類型、請假申請、配額等）與業務規則，維持系統最穩定、不易改變的知識。 | 被其他所有後端模組依賴，但不反向依賴任何外部實作。 | 嚴格避免依賴資料庫、Web 框架或第三方套件，保持高度與平台無關，可類比為「純演算法與資料結構層」，對應硬體世界中的邏輯設計而非具體裝置。 |

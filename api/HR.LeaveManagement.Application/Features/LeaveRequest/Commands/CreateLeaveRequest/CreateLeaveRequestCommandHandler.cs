@@ -43,6 +43,7 @@ namespace HR.LeaveManagement.Application.Features.LeaveRequest.Commands.CreateLe
                 throw new BadRequestException("Invalid Leave request", validationResult);
         
             var leaveRequest = _mapper.Map<HR.LeaveManagement.Domain.LeaveRequest>(request);
+            leaveRequest.DateRequested = DateTime.Now;
             leaveRequest = await _leaveRequestRepository.CreateAsync(leaveRequest);
 
             try {

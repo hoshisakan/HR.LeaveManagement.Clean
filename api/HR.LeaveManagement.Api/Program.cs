@@ -84,11 +84,43 @@ app.UseCors(policyName);
 app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment())
+// {
+//     app.UseSwagger();
+//     app.UseSwaggerUI();
+// }
+
+// Enable middleware to serve generated Swagger as a JSON endpoint.
+// This is moved outside of 'if (app.Environment.IsDevelopment())' 
+// to ensure it's accessible during interviews/demos in any environment.
+app.UseSwagger();
+
+// Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
+// specifying the Swagger JSON endpoint.
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    // Resolve the IApiVersionDescriptionProvider from the Service Provider
+    // to dynamically generate endpoints for all registered API versions.
+    var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+
+    foreach (var description in provider.ApiVersionDescriptions)
+    {
+        // Build the URL for the swagger.json file for each version
+        // Example: /swagger/v1/swagger.json
+        options.SwaggerEndpoint(
+            $"/swagger/{description.GroupName}/swagger.json", 
+            $"HR Management API - {description.GroupName.ToUpperInvariant()}"
+        );
+    }
+
+    // Optional: Set Swagger UI as the application's root page
+    // By setting RoutePrefix to string.Empty, you can access Swagger at http://localhost:5282/
+    // options.RoutePrefix = string.Empty; 
+
+    // Enable 'Try it out' by default for easier demonstration
+    options.EnableDeepLinking();
+    options.DisplayRequestDuration();
+});
 
 app.UseHttpsRedirection();
 

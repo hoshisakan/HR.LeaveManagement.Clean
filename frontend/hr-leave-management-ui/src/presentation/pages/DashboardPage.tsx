@@ -57,7 +57,7 @@ export function DashboardPage() {
         }
 
         const total = requests.length
-        const pending = requests.filter((r) => r.approved === null).length
+        const pending = requests.filter((r) => r.approved === null && !r.cancelled).length
         const approved = requests.filter((r) => r.approved === true).length
 
         setTotalRequests(total)
@@ -89,7 +89,7 @@ export function DashboardPage() {
     {
       label: '待審核',
       value: loading ? '—' : String(pendingRequests),
-      annotation: 'Approved = null',
+      annotation: 'Approved = null && Cancelled = false',
       color: 'text-amber-600',
     },
     ...(isAdmin
@@ -133,7 +133,9 @@ export function DashboardPage() {
             size="sm"
             className="border-emerald-200 bg-emerald-50/10 text-emerald-50 hover:border-emerald-100 hover:bg-emerald-50/20"
             leftIcon={<ArrowRight className="h-4 w-4" />}
-            onClick={() => navigate('/employee/leave-requests')}
+            onClick={() =>
+              navigate(isAdmin ? '/admin/leave-requests' : '/employee/leave-requests')
+            }
           >
             前往待審核請假
           </Button>

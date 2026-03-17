@@ -44,9 +44,12 @@
   - **年度配額初始化**：  
     - `CreateLeaveAllocation` Command Handler 依據假別與年度，為目標員工建立對應的 `LeaveAllocation` 記錄。  
     - 透過 `LeaveAllocationRepository.AllocationExists` / `LeaveAllocationMustExist` 等方法避免重複建立同年度同假別的配額。  
-  - **配額管理**：  
-    - Admin 可調整 `NumberOfDays`、`Period` 等欄位，並透過 DTO 在 UI 呈現目前配額與已用天數（由其他查詢計算）。  
-    - 查詢 Handler 提供管理員視角（全部員工）與員工視角（僅個人）的列表資料。
+  - **配額管理與嚴格餘額控管（UsedDays）**：  
+    - 每筆 `LeaveAllocation` 除了年度總配額 `NumberOfDays` 外，還維護 `UsedDays` 欄位，用來累計「已核准且未取消」的請假總天數。  
+    - 在管理員進行核准流程時（`ChangeLeaveRequestApprovalCommandHandler`），系統會即時計算本次請假天數，並檢查 `UsedDays + 本次天數` 是否超過 `NumberOfDays`：  
+      - 若將超過年度配額，Handler 會拋出 `BadRequestException("Insufficient leave balance for this request.")`，阻止核准與配額更新。  
+      - 若未超過，則原子性地更新 `LeaveRequest.Approved = true` 並遞增對應配額的 `UsedDays`。  
+    - 若已核准的請假後續被改為駁回或取消，系統會同步扣回對應的 `UsedDays`，確保配額餘額與實際已核准的請假天數保持一致。
 
 - **請假申請（Leave Requests）**  
   - **申請流程**：  
@@ -70,6 +73,10 @@
   - **特別規則：防止刪除已存有請假紀錄的配額**  
     - `DeleteLeaveAllocationCommandHandler` 在呼叫 Repository 刪除前，會透過 `ILeaveRequestRepository` 檢查是否存在與目標配額相同 `EmployeeId` 與 `LeaveTypeId` 的 `LeaveRequest`。  
     - 若存在關聯請假紀錄，Handler 會拋出 `BadRequestException("無法刪除，因為該員工已有相關的請假申請紀錄")`，由 Middleware 統一回傳至前端，確保資料庫與業務狀態保持一致。
+  - **稽核完整性（Audit Integrity）**  
+    - 在 `HrDatabaseContext` 中，針對 `LeaveRequest.LeaveTypeId` 及 `LeaveAllocation.LeaveTypeId` 指向 `LeaveType.Id` 的外鍵關聯，將刪除行為由 `DeleteBehavior.Cascade` 調整為 `DeleteBehavior.Restrict`。  
+    - 一旦某個 `LeaveType` 已被任何 `LeaveRequest` 或 `LeaveAllocation` 參考，嘗試刪除該假別時資料庫會拒絕，防止意外刪除仍具稽核價值的歷史資料。  
+    - 這種做法確保 HR 報表與稽核紀錄在長期演進中仍然可靠，不會因 Schema 調整或誤刪而消失。
 
 ### 效能與安全
 
@@ -80,6 +87,12 @@
 - **AutoMapper DTO 映射（Performance & Maintainability）**  
   - 在 `Application.MappingProfiles` 中定義 `LeaveTypeProfile`、`LeaveAllocationProfile`、`LeaveRequestProfile` 等，集中維護 Domain ↔ DTO ↔ Command 之間的映射。  
   - 降低重複手動 Mapping 的程式碼量，減少錯誤與維護成本，同時提升查詢與寫入流程的一致性與可閱讀性。
+
+- **交易與狀態一致性（Unit of Work & Atomicity）**  
+  - `HrDatabaseContext` 作為單一工作單元（Unit of Work），同時追蹤 `LeaveRequest` 與 `LeaveAllocation` 的變更，並在 `SaveChangesAsync` 時一併提交。  
+  - 在核准請假時，`ChangeLeaveRequestApprovalCommandHandler` 會於同一交易中更新請假狀態與配額 `UsedDays`，確保兩者狀態變化具原子性：  
+    - 若任何一步（例如配額驗證或資料庫寫入）失敗，整體交易會回滾，不會出現「請假已顯示核准，但配額未扣除」或相反情況。  
+  - 這種設計提高了整體狀態機的一致性與可預測性，對多管理員併發審核特別重要。
 
 - **Docker 容器化與 Nginx Resolver 優化（Deployment & Scalability）**  
   - 將 API 與前端 UI 透過 **Docker** 進行容器化封裝，統一依賴環境、簡化部署流程，利於在測試、預備與正式環境間遷移。  

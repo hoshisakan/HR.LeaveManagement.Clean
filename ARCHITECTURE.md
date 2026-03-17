@@ -1,239 +1,155 @@
-### HR.LeaveManagement 系統架構與設計邏輯
+## HR.LeaveManagement 系統架構說明（Data Integrity / Stateful Logic / Secure Infra）
+
+本文件聚焦於三個架構支柱，說明此專案如何在 **資料完整性（Data Integrity）**、**狀態化業務邏輯（Stateful Business Logic）** 與 **安全基礎設施（Secure Infrastructure）** 上做出專業且可擴充的設計決策。
 
 ---
 
-## 架構圖
+### 1. 🛡️ Data Integrity & Audit Protection（Persistence Layer）
 
-```mermaid
-flowchart TD
-    %% 定義外部工具層（橫向排列，現在有四個主要組件）
-    subgraph External_Tools ["外部工具與接口 (外層實作)"]
-        direction LR
-        API["API Layer"]
-        DB["Persistence (DB)"]
-        AUTH["Identity (Auth)"]
-        INFRA["Infrastructure (Email/Logs)"]
-    end
+#### 1.1 Referential Integrity：從 Cascade 到 Restrict
 
-    %% 定義核心邏輯層
-    APP(("Application Layer<br/>(Logic / MediatR)"))
+過去常見的做法是將外鍵設成 `DeleteBehavior.Cascade`，刪除主表時自動級聯刪除相關資料；然而在 HR / 財務等領域，歷史紀錄是 Audit Trail 的一部分，**不應輕易物理刪除**。
 
-    %% 定義最核心實體層
-    DOMAIN(("Domain Layer<br/>(Entities)"))
+在本系統中，Persistence 層的 `HrDatabaseContext` 明確針對下列關聯設定為 `DeleteBehavior.Restrict`：
 
-    %% 依賴方向：全部透過介面指向中間的核心
-    API -- "DIP" --> APP
-    DB -- "DIP" --> APP
-    AUTH -- "DIP" --> APP
-    INFRA -- "DIP" --> APP
-    
-    %% 邏輯指向實體
-    APP --> DOMAIN
+- `LeaveRequest.LeaveTypeId` → `LeaveType.Id`  
+- `LeaveAllocation.LeaveTypeId` → `LeaveType.Id`
 
-    %% 樣式設定
-    style DOMAIN fill:#f9f,stroke:#333,stroke-width:2px
-    style APP fill:#bbf,stroke:#333,stroke-width:2px
-    style External_Tools fill:none,stroke:#666,stroke-dasharray: 5 5
-```
+效果如下：
 
-#### Identity 與 Application 的解耦（Interface-Based / Dependency Inversion）
+- 若某個 `LeaveType` 已被任何 `LeaveRequest` 或 `LeaveAllocation` 參考，**刪除該假別會被資料庫層的 FK 約束拒絕**。  
+- 管理員必須先處理或封存關聯資料，才能對假別做進一步處理，避免誤刪歷史請假紀錄。
 
-在此專案中，**Application 層先定義協定（Contracts）**，Identity 層僅提供實作，避免核心邏輯依賴具體身分框架：
+這項決策將 Referencial Integrity 的責任交由資料庫強制執行，而非僅依賴應用程式邏輯，大幅降低因程式 Bug 或維運操作失誤而清空關聯資料的風險。
 
-- **介面定義位置（Application）**：`HR.LeaveManagement.Application.Identity` 內的 `IAuthService`、`IUserService` 定義了「登入、換發 Token、取得員工資訊」等能力的抽象契約。
-- **實作位置（Identity）**：`HR.LeaveManagement.Identity` 內的 `AuthService`、`UserService` 依照上述介面實作 JWT、角色與使用者存取。
-- **組裝位置（API）**：由 `HR.LeaveManagement.Identity.IdentityServicesRegistration.AddIdentityServices(...)` 將 `IAuthService` / `IUserService` 以 DI 綁定到具體實作，讓 API 入口在執行期完成組裝。
+#### 1.2 Audit Trail Preservation：為何避免物理刪除？
 
-因此，Application 的用例/規則只面向 `IAuthService` / `IUserService`，可在不影響核心邏輯的前提下替換身分實作（例如更換 Token 策略、帳號系統或外部 IdP）。
+在真實 HR 場景中，以下需求十分常見：
 
-| 層級 / 模組 | 核心責任 | 與其他層的關係 | 平台依賴性與備註 |
-|------------|----------|----------------|------------------|
-| **Domain（HR.LeaveManagement.Domain）** | 定義請假相關的核心概念（請假類型、請假申請、配額等）與業務規則，維持系統最穩定、不易改變的知識。 | 被其他所有後端模組依賴，但不反向依賴任何外部實作。 | 嚴格避免依賴資料庫、Web 框架或第三方套件，保持高度與平台無關，可類比為「純演算法與資料結構層」，對應硬體世界中的邏輯設計而非具體裝置。 |
-| **Application（HR.LeaveManagement.Application）** | 組織各種用例（Use Cases），定義輸入/輸出模型與存取介面，負責協調領域物件的使用與狀態變更。 | 依賴 Domain 的型別與規則，並只透過介面（Contracts）向外宣告對資料存取、身份驗證、記錄等服務的需求。 | 嚴格面向介面開發，不直接知道資料庫或網頁技術細節，可被不同的上層入口（REST API、gRPC、批次服務等）重複使用，類似於以「協定/規格」驅動的邏輯控制層。 |
-| **Persistence（HR.LeaveManagement.Persistence）** | 具體實作資料存取邏輯，將 Application 定義的存取介面對應到底層資料庫操作。 | 依賴 Application 中定義的存取介面與 Domain 的實體，向下則連接實際的資料庫。 | 目前以 SQL Server 與相關 ORM 技術為主，但可透過替換此層實現來導入不同資料庫，而不影響上層邏輯。 |
-| **Infrastructure（HR.LeaveManagement.Infrastructure）** | 實作跨領域的技術服務，例如記錄、郵件、檔案等週邊能力。 | 依 Application 的服務介面，為上層提供實際可運行的技術支援。 | 此層可隨實際運維需求更換實作（例如改變記錄或郵件供應商），不影響業務邏輯與領域模型。 |
-| **Identity（HR.LeaveManagement.Identity）** | 實作使用者管理與權限控管，包含帳號、認證與角色資訊。 | 對 Application 暴露身分與授權相關的介面，並可依環境採用不同的憑證或授權策略。 | 以具體身分管理技術建構，但對上層來說只是一組介面，可視需要調整認證機制。 |
-| **後端入口（HR.LeaveManagement.Api）** | 作為後端邏輯對外的唯一進入點，負責接收外部請求、轉為內部用例呼叫、回傳標準化結果。 | 依賴 Application 暴露的用例與介面，不直接操作資料庫與基礎設施。 | 雖然目前以 Web API 形式存在，但可視為一個「介面層」，未來若改採其他通訊協定（如訊息匯流排或批次觸發），只需重寫此層。 |
-| **反向代理（reverse_proxy / Nginx）** | 統一處理對外連線、TLS 終結、路由與靜態檔案服務，同時將後端入口與資料庫隔離於內部網路。 | 向外暴露 HTTP/HTTPS 入口，向內將請求導向後端入口與其他服務。 | 純屬基礎設施配置層，不參與業務邏輯；可隨佈署環境替換為其他反向代理或負載平衡器。 |
-| **資料庫（mssql / SQL Server）** | 儲存系統狀態與交易資料，確保資料持久性與一致性。 | 與 Persistence 層緊密合作，由 Persistence 層負責轉譯 Domain 實體至實際資料表。 | 作為一個可替換的儲存後端，若未來調整為其他關聯式或非關聯式資料庫，變更集中於 Persistence 與部分設定。 |
+- 稽核或檢查期間需要回顧「某年度員工實際請了哪些假」。  
+- 需要針對爭議案件調閱歷史申請與當時審核決策。  
+- 需要長期維護 KPI / 使用率等統計資料。
+
+因此：
+
+- **LeaveRequests** 與 **LeaveAllocations** 被視為交易紀錄（Transactional Records），一旦產生，應該長期保留。  
+- 即便假別（LeaveType）已不再提供（例如政策改版），我們也不應刪除過去所有使用該假別的歷史紀錄。
+
+採用 `DeleteBehavior.Restrict` 之後：
+
+- **任何嘗試刪除仍被參考的 LeaveType 都會立即失敗**，並由上層 Exception Middleware 將錯誤轉為清楚的 API 回應。  
+- 這種設計使系統具備高度的 **Audit Trail 保護能力**，滿足企業與法遵對歷史資料可追溯性的要求。
 
 ---
 
-## 核心架構關係（表格化示意）
+### 2. ⚡ Stateful Business Logic（Domain & Application Layers）
 
-| 範疇 | 元件 / 層級 | 角色說明 | 依賴方向（由外向內） |
-|------|------------|----------|----------------------|
-| 對外存取與邊界 | 使用者 / 前端瀏覽器 | 透過瀏覽器或前端應用程式，以 HTTP/HTTPS 存取系統。 | 僅呼叫反向代理提供的公開入口，不直接接觸後端內部模組。 |
-| 對外存取與邊界 | 反向代理（reverse_proxy / Nginx） | 管理對外連線、TLS 終結、路由與靜態檔案服務，並將請求導向後端入口。 | 依賴後端入口 `API` 與靜態檔案來源，不參與業務邏輯。 |
-| 後端入口 | 後端入口（HR.LeaveManagement.Api） | 接收來自反向代理或其他用戶端的請求，負責協調驗證、轉換輸入，並呼叫對應的應用層用例。 | 依賴 Application 層的用例與介面，不直接操作資料庫與外部基礎設施。 |
-| 應用邏輯 | Application（HR.LeaveManagement.Application） | 將單一請求拆解為具體用例，組織命令與查詢，協調領域物件與外部服務的互動。 | 依賴 Domain 的型別與規則，並依賴由 Persistence / Infrastructure / Identity 提供的介面實作。 |
-| 核心領域 | Domain（HR.LeaveManagement.Domain） | 承載請假領域的核心概念與不變條件，定義實體、值物件與重要規則。 | 不依賴任何外部層級，是所有後端邏輯的穩定基礎。 |
-| 技術實作 | Persistence（HR.LeaveManagement.Persistence） | 實作資料庫存取，負責將 Domain 實體與資料表之間互相轉換。 | 依賴 Application 定義的存取介面與 Domain 型別，向下連接 SQL Server。 |
-| 技術實作 | Infrastructure（HR.LeaveManagement.Infrastructure） | 提供記錄、郵件、檔案等跨領域共用服務的具體實作。 | 依賴 Application 定義的服務介面，可依照運維需求替換實作而不影響上層。 |
-| 技術實作 | Identity（HR.LeaveManagement.Identity） | 提供帳號、認證與角色管理的實作，確保用戶身分與權限控制。 | 依賴 Application 定義的身分管理介面，並視需要使用特定認證方案。 |
-| 資料儲存 | 資料庫（mssql / SQL Server） | 儲存所有業務資料與交易紀錄，確保資料一致性與持久化。 | 與 Persistence 層緊密連結，但對上層僅以抽象資料存取介面呈現，可被其他資料庫替換。 |
+此系統不僅儲存靜態資料，更在領域層與應用層中實作了可被稽核與驗證的**狀態化業務邏輯**，尤其體現在「請假配額與核准流程」上。
 
----
+#### 2.1 Resource Allocation：UsedDays 與即時配額追蹤
 
-## Leave Management 核心資料模型（ER 圖）
+在 `HR.LeaveManagement.Domain` 的 `LeaveAllocation` 實體中，除了年度配額 `NumberOfDays` 外，新增了：
 
-以下 **Entity Relationship Diagram** 專注於請假業務核心：假別定義、天數配給與請假申請。實體與欄位對應 `HR.LeaveManagement.Domain` 與 Persistence 實際結構。
+- `UsedDays`：整年度目前已核准且未取消的請假天數累計。
 
-```mermaid
-erDiagram
-  LeaveTypes {
-    int Id PK "主鍵"
-    string Name "假別名稱"
-    int DefaultDays "預設天數"
-    datetime DateCreated
-    datetime DateModified
-  }
+這個欄位讓系統能直接反映「資源使用狀態（Resource Allocation）」：
 
-  LeaveAllocations {
-    int Id PK "主鍵"
-    int LeaveTypeId FK "關聯假別"
-    string EmployeeId "連結使用者系統"
-    int NumberOfDays "配給天數"
-    int Period "年度/期間"
-    datetime DateCreated
-    datetime DateModified
-  }
+- `NumberOfDays`：總可用額度。  
+- `UsedDays`：已消耗額度。  
+- `RemainingDays = NumberOfDays - UsedDays`：可推導出即時剩餘額度。
 
-  LeaveRequests {
-    int Id PK "主鍵"
-    int LeaveTypeId FK "關聯假別"
-    string RequestingEmployeeId "連結使用者系統"
-    datetime StartDate "請假起日"
-    datetime EndDate "請假迄日"
-    datetime DateRequested "申請日"
-    string RequestComments "備註"
-    bool Approved "核准狀態"
-    bool Cancelled "是否取消"
-    datetime DateCreated
-    datetime DateModified
-  }
+#### 2.2 Cumulative Balance Validation：避免 Over-allocation
 
-  LeaveTypes ||--o{ LeaveAllocations : "1:N 假別對應多筆配給"
-  LeaveTypes ||--o{ LeaveRequests : "1:N 假別對應多筆申請"
-```
+在 Application 層中，`ChangeLeaveRequestApprovalCommandHandler` 負責處理請假核准的 Command。  
+當管理員嘗試將某筆請假從 Pending/Rejected 改為 Approved 時，Handler 會進行 **Cross-Entity Validation**：
 
-| 實體 | 說明 |
-|------|------|
-| **LeaveTypes** | 假別定義：名稱、預設天數，為配給與申請的唯一定義來源。 |
-| **LeaveAllocations** | 天數配給：依假別與員工（`EmployeeId`）在特定 `Period` 配給可請天數。 |
-| **LeaveRequests** | 請假申請：依假別與申請人（`RequestingEmployeeId`）記錄起迄日、核准與取消狀態。 |
+1. 取得目標 `LeaveRequest`，並計算本次請假天數 `daysRequested`：  
+   - `daysRequested = (EndDate.Date - StartDate.Date).TotalDays + 1`
+2. 從 `ILeaveAllocationRepository` 取得該員工、該假別、該年度的 `LeaveAllocation`。  
+3. 驗證：
 
-**使用者連結**：`LeaveAllocations.EmployeeId` 與 `LeaveRequests.RequestingEmployeeId` 均指向身分系統（Identity）中的使用者，不在此 ER 圖內重複建立使用者實體，僅標註為對「使用者系統」的參照。
+   ```text
+   allocation.UsedDays + daysRequested <= allocation.NumberOfDays
+   ```
+
+4. 若上式不成立，代表此核准會造成 **Over-allocation**，Handler 直接拋出 `BadRequestException("Insufficient leave balance for this request.")`，阻止任何狀態與配額更新。
+5. 若成立，則：
+   - 將 `LeaveRequest.Approved` 設為 `true`。  
+   - 將 `LeaveAllocation.UsedDays += daysRequested`。
+
+當已核准的請假被改為未核准或取消時，Handler 會在同一個流程中將對應天數自 `UsedDays` 扣回，確保年度餘額恢復正確。
+
+> **關鍵點**：系統不只確認「單筆請求 ≤ 配額」，而是確認「**已核准總量 + 新請求量 ≤ 年度總配額**」，從領域層就消除超額使用的可能性。
+
+#### 2.3 Atomicity：Unit of Work 與交易一致性
+
+`HrDatabaseContext` 實作了典型的 **Unit of Work** 模式：
+
+- 追蹤所有受影響的 `LeaveRequest` 與 `LeaveAllocation` 實體。  
+- 在 `SaveChangesAsync` 時，以單一交易（Transaction）一次性提交變更。
+
+在 Leave Approval 流程中，以下操作會在同一交易中完成：
+
+- 更新 `LeaveRequest.Approved` 狀態。  
+- 更新 `LeaveAllocation.UsedDays` 累計值。
+
+若任何一個更新或驗證步驟發生例外：
+
+- 整個交易回滾，保證「請假狀態」與「配額餘額」永遠一致。  
+- 這符合 ACID 中的 **Atomicity** 要求，尤其在多管理員同時審核同一員工不同請假紀錄的情境下，顯得格外重要。
 
 ---
 
-## 設計原則說明
+### 3. 🌐 Secure Infrastructure（Nginx Reverse Proxy & HTTPS）
 
-### 1. 解耦（Decoupling）：Domain 層不依賴外部工具
+最後一個支柱是透過 **Nginx + Docker Compose** 建立一個接近 Production 的安全基礎設施，讓整個系統從一開始就考慮到部署與安全性。
 
-- **Domain 層職責**  
-  `HR.LeaveManagement.Domain` 承載系統中最穩定的商業語意：  
-  - 請假類型、請假申請、請假配額等**領域實體**與對應的**值物件**。  
-  - 像是「是否可核准」、「配額是否足夠」等**業務規則**，以方法或規則集中在實體本身或領域服務中。
+#### 3.1 Nginx Reverse Proxy：Gateway / Edge Role
 
-- **不依賴外部框架與技術細節**  
-  Domain 層設計上**不參考任何基礎設施或框架型套件**（例如 EF Core、Logging Library、ASP.NET Core 等），只會：  
-  - 使用純 C# 語言元素（class、struct、interface、enum）。  
-  - 以**介面（interface）或抽象型別**宣告對外部行為的期望，而不實際連結具體實作。  
-  - 避免直接使用 `DbContext`、`HttpContext` 或第三方 SDK，這些皆留在外圍層處理。
+`docker-compose.yml` 中的 `reverse_proxy` 服務扮演 Gateway 角色：
 
-- **效益**  
-  - 領域模型可以**獨立測試**與演進，而不受資料庫或框架升級的影響。  
-  - 若未來由 SQL Server 改為 PostgreSQL，或 API 由 ASP.NET Core 改為其他技術，Domain 層原則上可維持不變。  
-  - 對於長期維護與重構，整體風險與成本大幅降低。  
-  - 從系統底層的角度看，這種作法類似於在硬體抽象層（Hardware Abstraction Layer, HAL）上方維持一組與實際裝置無關的邏輯規範，使邏輯層在硬體組態變化下仍能穩定運作。
+- 將使用者的所有 HTTP/HTTPS 請求集中進入 Nginx。  
+- 透過 `conf/nginx/nginx.conf` 與 `conf/nginx/conf.d`：
+  - 服務 React 前端編譯後的靜態資源（`/usr/share/nginx/html`）。  
+  - 將 `/api` 或相關路由反向代理（Reverse Proxy）到後端 `api` 容器的 ASP.NET Core Web API。  
+  - 統一設定 CORS / Header / 日誌與錯誤頁面。
 
-**在高複雜度環境下，此種解耦設計可將變動集中在外圍實作層，確保核心邏輯在硬體或基礎設施頻繁變更時仍維持穩定。**
+這樣的設計讓 Web API 與資料庫只需暴露在 Docker Network 內，不直接對外開放，有助於隔離與防護。
 
----
+#### 3.2 SSL/TLS（HTTPS）端點與 Swagger 入口
 
-### 2. 介面導向開發（Interface-Based）：先定義 Contracts 再實作
+- Nginx 透過掛載 `./certs/nginx` 中的憑證與金鑰，提供正式 HTTPS 端點。  
+- 這讓本機或 Demo 環境也能以 **`https://localhost`** 的形式運作，接近實際上線配置。  
+- Swagger UI 經由 Reverse Proxy 暴露為：
 
-- **Application 層 Contracts**  
-  `HR.LeaveManagement.Application` 中定義**對外依賴的抽象契約（Contracts）**，例如：  
-  - 資料存取介面：`ILeaveTypeRepository`, `ILeaveAllocationRepository`, `IUnitOfWork` 等。  
-  - 身分驗證與使用者服務：`IAuthService`, `IUserService`。  
-  - 系統服務：`IEmailService`, `ILoggingService` 之類的基礎設施介面。
+  ```text
+  https://localhost/swagger
+  ```
 
-- **實作分佈於外圍層**  
-  - `HR.LeaveManagement.Persistence`：實作各種 Repository 與 Unit of Work，具體使用 EF Core、DbContext、LINQ 等技術；對 Application 而言，僅以介面視之。  
-  - `HR.LeaveManagement.Infrastructure`：實作寄信、記錄 Log 等功能，可替換不同供應商（SMTP、第三方 API、不同 Logger）。  
-  - `HR.LeaveManagement.Identity`：實作 JWT Token 產生、Refresh Token 機制、角色與使用者管理，對外也僅以 `IAuthService` / `IUserService` 提供介面。
+  這對於面試展示或對第三方說明 API 能力時非常直覺。
 
-- **IoC / DI 組態**  
-  - 在 `HR.LeaveManagement.Api` 的啟動程式中（例如 `Program.cs` / `Startup` 類型），利用 ASP.NET Core 內建相依性注入（Dependency Injection, DI）容器，將 `ILeaveTypeRepository` 綁定到 `LeaveTypeRepository`，將 `IAuthService` 綁定到具體實作等。  
-  - 入口邏輯與處理程序只注入介面，不直接建立實例，達到**鬆耦合**與**可替換性**。
+#### 3.3 Role-based Routing & Security Posture
 
-- **風格與好處**  
-  - 開發流程偏向**先定義介面、先定義 Use Case 合約，再往外補實作**。  
-  - 未來要接入新的日誌系統、寄信供應商或更換 Identity 機制，只需在外圍層調整，不影響 Application 與 Domain。  
-  - 對熟悉硬體 / 韌體之工程組織而言，可視為「定義 Spec 與介面後，再提供不同 Driver/Adapter 實作」：類似 UEFI Protocol / Spec-First 的開發模式，先訂定協定與介面，再透過不同 Driver 實作支援多種平台。
+雖然實際角色授權主要發生在 Application 層與 Identity（JWT Claims + ASP.NET 授權），但從架構角度：
 
-**在高複雜度環境下，此種介面導向與 DI 結合的設計，能夠在更換底層實作或整合新模組時，避免連鎖修改核心程式碼，維持系統整體行為的一致與穩定。**
+- Nginx 作為邊界層，可在需要時加入：
+  - 基於路徑或網段的基本限制（例如只允許內網直接呼叫特定管理端點）。  
+  - 統一的 Rate Limit / IP 白名單等安全策略。  
+- 目前的設計將這層考量預留在 Infra，未來若需要更嚴格的 API Gateway 策略，可在不修改後端程式碼的情況下於 Nginx 層擴充。
 
 ---
 
-### 3. 非同步處理：利用 CQRS 與分離式請求處理流程提升系統反應效率
+### 總結：三大支柱如何整合
 
-- **CQRS 模型**  
-  - 在 `Application` 層中，將讀寫操作拆分為**命令（Command）**與**查詢（Query）**兩條路徑（Command Query Responsibility Segregation, CQRS）：  
-    - Command：負責**狀態變更**與商業規則執行。  
-    - Query：專注於**資料讀取**與查詢投影。  
-  - 後端入口只負責將外部請求轉換為對應的 Command/Query 物件，再交由內部邏輯流程處理。
+- **Data Integrity & Audit Protection**：  
+  - 使用 `DeleteBehavior.Restrict` 與資料庫層級的 Referential Integrity，確保歷史紀錄與 Audit Trail 永遠不會被誤刪。  
 
-- **內部邏輯派發與管線**  
-  - 每一種命令或查詢對應一個獨立的邏輯處理程序，專注於單一業務用例。  
-  - 在處理程序之前與之中，可插入標準化的共用流程（例如驗證、記錄、交易控制），形成具可插拔性的處理管線。  
-  - 這種設計不綁定特定 Web 技術或函式庫，可在不同通訊介面（HTTP、訊息佇列、排程作業）間重複使用。
+- **Stateful Business Logic**：  
+  - 透過 `UsedDays` + Cumulative Balance Validation，將 Resource Allocation 規則嵌入到 Application 層的 Command Handler 中，並以 Unit of Work 確保核准與扣點的 Atomicity。  
 
-- **非同步與效能**  
-  - Handler 與 Repository 操作以 `async/await` 為主，搭配 EF Core 的非同步查詢與寫入，減少 Thread Blocking。  
-  - 在高併發場景下，非同步 I/O 呼叫（資料庫、Email、外部服務）有助於提升**資源使用效率與整體吞吐量**。  
-  - 若未來導入事件驅動架構（Domain Events / Integration Events），可搭配內部事件派發機制，進一步分散工作負載並消弭同步耦合。
+- **Secure Infrastructure**：  
+  - 以 Nginx Reverse Proxy + HTTPS + Docker Compose 建立接近生產的部署拓樸，讓系統在一開始就具備良好的安全姿態與可運維性。
 
-**在高複雜度與高併發環境下，CQRS 加上明確的非同步處理流程，可以將讀寫壓力分離並限制每個處理單元的責任範圍，使系統在負載波動與功能擴充時仍能維持穩定度與可預測性。**
+這三個支柱共同構成一套可在技術面試中深入說明的架構故事：  
+從純粹的程式分層，提升到 **資料可靠性、狀態一致性與部署安全性** 三個面向的綜合考量。 
 
----
-
-### 4. 系統佈署：Docker Compose（Nginx + API + DB）
-
-- **整體概念**  
-  專案根目錄的 `docker-compose.yml` 定義了一個標準的三層部署：  
-  - `reverse_proxy`：Nginx 容器，負責提供前端靜態檔與反向代理 API。  
-  - `api`：封裝 `HR.LeaveManagement.Api` 的 ASP.NET Core Web API 容器。  
-  - `mssql`：SQL Server 容器，提供主資料庫服務。  
-  三者透過 `hr_leave_management_network` 自訂 Bridge Network 以固定 IP 進行溝通。
-
-- **Nginx（reverse_proxy 容器）**  
-  - 使用 `./conf/nginx/nginx.conf` 與 `./conf/nginx/conf.d` 管理虛擬主機與反向代理規則。  
-  - 掛載 `./frontend/hr-leave-management-ui/dist` 作為靜態站台根目錄，負責提供前端靜態資源。  
-  - 透過 `${NGINX_HTTP_OUTER_PORT}` / `${NGINX_HTTPS_OUTER_PORT}` 對外暴露 HTTP/HTTPS 服務，內部則映射到 Nginx 容器內部 Port。
-
-- **API（HR.LeaveManagement.Api 容器）**  
-  - `Dockerfile` 基於 Ubuntu 22.04，安裝指定版本的 .NET SDK，並在建置階段執行：  
-    - `dotnet publish api/HR.LeaveManagement.Api/HR.LeaveManagement.Api.csproj -c Release -o /deploy/api`  
-  - 執行時於 `/deploy/api` 啟動 `dotnet HR.LeaveManagement.Api.dll` 作為 API Entry Point。  
-  - Web API 透過 `${API_OUTER_PORT}` 映射外部 Port，內部則以 `ASPNETCORE_URLS` 設定實際監聽位址。  
-  - Logs 與上傳檔案（Images）掛載到主機對應目錄，以利持久化與運維分析。
-
-- **SQL Server（mssql 容器）**  
-  - 使用 `./conf/mssql/Dockerfile` 建置專用 SQL Server 容器。  
-  - 資料、備份、Log 與機密檔（secrets）目錄映射至主機，以便備份與異地還原。  
-  - 採用 `.env` 檔中的 `MSSQL_*` 變數設定 SA 密碼、Collation、授權模式與 HADR 相關參數。  
-  - 對外經由 `${MSSQL_OUTER_PORT}` 供開發 / 維運者連線，內部則透過固定 IP 在 `hr_leave_management_network` 上提供服務給 `api`。
-
-- **環境參數與彈性**  
-  - `.env` 檔統一管理：  
-    - 各服務 Container 名稱、版本與 Tag。  
-    - 內外 Port 映射、Network Subnet / Gateway / IP 分配。  
-    - SQL Server 相關認證與資料庫設定。  
-  - 在實務部署上，可依環境（Dev / QA / Prod）維護不同 `.env` 檔以調整 Port、IP、資源限制與 Log 路徑，無須改動程式碼。
-  
-**在高複雜度環境下，透過 Docker Compose 將 Nginx、API 與 SQL Server 明確分離並以設定檔描述依賴關係，可以像管理多顆不同功能晶片一樣清楚控管各服務邊界與行為，讓佈署、升級與問題隔離更加可預期且穩定。**
-
----

@@ -26,7 +26,20 @@ namespace HR.LeaveManagement.Persistence.DatabaseContext
             // Apply all the configurations in the assembly
             // Seed the LeaveType entity
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(HrDatabaseContext).Assembly);
-            
+
+            // Configure delete behavior to preserve historical data
+            modelBuilder.Entity<LeaveRequest>()
+                .HasOne(lr => lr.LeaveType)
+                .WithMany()
+                .HasForeignKey(lr => lr.LeaveTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LeaveAllocation>()
+                .HasOne(la => la.LeaveType)
+                .WithMany()
+                .HasForeignKey(la => la.LeaveTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Apply the configuration for the LeaveType entity
             base.OnModelCreating(modelBuilder);
         }

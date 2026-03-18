@@ -5,7 +5,7 @@
 [![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20Refresh%20Token-orange)]()
 [![UI](https://img.shields.io/badge/Frontend-React%20%2F%20Vite%20%2F%20TS-61dafb)]()
 
-**HR Leave Management System** – 一套示範企業級請假管理的端到端解決方案。  
+**HR Leave Management System** – 一套示範請假管理的端到端解決方案。  
 後端採用 **Clean Architecture + CQRS（MediatR）+ ASP.NET Core + EF Core**，前端採用 **React + TypeScript + Vite**，並以 **Docker Compose + Nginx + MSSQL** 模擬接近 Production 的環境。
 
 ---

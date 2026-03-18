@@ -105,7 +105,7 @@
 
 ### 🚀 執行方式（Docker Demo / 本機開發）
 
-- **Docker Demo（推薦面試展示）**  
+- **Docker Demo**  
   1. 在 `frontend/hr-leave-management-ui` 執行：  
      - `npm install`  
      - `npm run build`  

@@ -56,6 +56,71 @@
 
 ---
 
+### 🔐 API 權限與架構設計（API & RBAC Architecture）
+
+本系統採用 **JWT Bearer + ASP.NET Core Identity** 進行身分驗證，並以 **Role-based Access Control (RBAC)** 區分 `Administrator` 與 `Employee` 權限。以下為完整 API 端點清單。
+
+#### API 端點總覽
+
+| Category | Endpoint | Method | Required Role | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| **Auth** | `/api/v1/Auth/Login` | POST | 無（公開） | 使用者登入，回傳 JWT 與 Refresh Token |
+| **Auth** | `/api/v1/Auth/Register` | POST | 無（公開） | 新使用者註冊 |
+| **Auth** | `/api/v1/Auth/Refresh-Token` | POST | 無（公開） | 以 Refresh Token 換發新 JWT |
+| **Auth** | `/api/v1/Auth/Logout` | POST | 已驗證 | 登出並撤銷 Refresh Token |
+| **LeaveRequests** | `/api/v1/LeaveRequests` | GET | Administrator, Employee | 取得請假申請列表（員工僅見自己的） |
+| **LeaveRequests** | `/api/v1/LeaveRequests/{id}` | GET | Administrator, Employee | 取得單筆請假申請明細 |
+| **LeaveRequests** | `/api/v1/LeaveRequests` | POST | Administrator, Employee | 建立新請假申請 |
+| **LeaveRequests** | `/api/v1/LeaveRequests/{id}` | PUT | Administrator, Employee | 更新請假申請 |
+| **LeaveRequests** | `/api/v1/LeaveRequests/{id}` | DELETE | Administrator | 刪除請假申請 |
+| **LeaveRequests** | `/api/v1/LeaveRequests/{id}/approve` | PUT | Administrator | 核准或駁回請假申請 |
+| **LeaveRequests** | `/api/v1/LeaveRequests/{id}/cancel` | PUT | Administrator, Employee | 取消請假申請 |
+| **LeaveTypes** | `/api/v1/LeaveTypes` | GET | Administrator, Employee | 取得所有假別列表 |
+| **LeaveTypes** | `/api/v1/LeaveTypes/{id}` | GET | Administrator, Employee | 取得單筆假別明細 |
+| **LeaveTypes** | `/api/v1/LeaveTypes` | POST | Administrator | 建立新假別 |
+| **LeaveTypes** | `/api/v1/LeaveTypes/{id}` | PUT | Administrator | 更新假別 |
+| **LeaveTypes** | `/api/v1/LeaveTypes/{id}` | DELETE | Administrator | 刪除假別 |
+| **LeaveAllocations** | `/api/v1/LeaveAllocations` | GET | Administrator, Employee | 取得請假配額列表（員工僅見自己的） |
+| **LeaveAllocations** | `/api/v1/LeaveAllocations/{id}` | GET | Administrator, Employee | 取得單筆請假配額明細 |
+| **LeaveAllocations** | `/api/v1/LeaveAllocations` | POST | Administrator | 建立新請假配額 |
+| **LeaveAllocations** | `/api/v1/LeaveAllocations/{id}` | PUT | Administrator | 更新請假配額 |
+| **LeaveAllocations** | `/api/v1/LeaveAllocations/{id}` | DELETE | Administrator | 刪除請假配額 |
+| **Users** | `/api/v1/Users` | GET | Administrator | 取得所有員工列表 |
+| **Users** | `/api/v1/Users/{id}` | GET | Administrator | 取得單筆員工明細 |
+
+#### 權限設計原則
+
+- **Administrator**：可管理假別、配額、審核請假、刪除申請、查詢所有員工。  
+- **Employee**：可建立/更新/取消自己的請假申請、查詢自己的假別與配額，無法刪除他人申請或審核。  
+- **Auth**：`Login`、`Register`、`Refresh-Token` 為公開端點；`Logout` 需已驗證（JWT 有效）。
+
+---
+
+#### 安全實作亮點（Security Implementation Highlights）
+
+本系統在 **Exception Middleware** 與 **Persistence 層 Audit** 上實作了以下安全與可維護性設計：
+
+**1. 全域例外處理（Exception Middleware）**
+
+- `ExceptionMiddleware` 作為 Pipeline 最外層，攔截所有未處理例外，避免堆疊外洩至前端。  
+- 依例外型別對應適當 HTTP 狀態碼：  
+  - `BadRequestException` → 400，並承載 `ValidationErrors`（FluentValidation 結果）  
+  - `NotFoundException` → 404  
+  - `UnauthorizedException` → 401  
+  - 其他未預期例外 → 500  
+- 統一回應格式為 `CustomValidationProblemDetails`（JSON），便於前端與監控系統解析。  
+- 所有例外皆記錄於 Serilog，便於事後稽核與除錯。
+
+**2. 自動化審計（HrDatabaseContext Audit）**
+
+- `HrDatabaseContext` 覆寫 `SaveChangesAsync`，在寫入前自動對所有 `BaseEntity` 的 Added/Modified 實體設定：  
+  - `DateCreated`：僅在 Added 時設定，確保建立時間不可變。  
+  - `DateModified`：每次 Modified 時更新，反映最後變更時間。  
+- 對 Modified 狀態的實體，明確設定 `entry.Property(x => x.DateCreated).IsModified = false`，防止應用程式誤改 `DateCreated`，從 ORM 層保護 Audit Trail 完整性。  
+- 搭配 `DeleteBehavior.Restrict` 與資料庫層級的 Referential Integrity，確保歷史紀錄與 Audit Trail 可追溯、可稽核。
+
+---
+
 ### 🌐 安全基礎設施（Secure Infrastructure via Docker Compose & Nginx）
 
 - **Docker Compose（`docker-compose.yml`）**  
@@ -133,4 +198,3 @@
     ```  
 
     並在 `.env` 中設定 `VITE_API_URL` 指向後端 URL（例如 `https://localhost:7133`）。
-

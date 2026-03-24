@@ -54,6 +54,156 @@
     - Admin 側邊欄：`Dashboard`、`Leave Types`、`Leave Allocations`、`Leave Requests`、`Users`。  
     - Employee 側邊欄：`My Leave Requests`。
 
+#### Clean Architecture 全域架構圖
+
+```mermaid
+flowchart TB
+    Client([Client / Frontend])
+
+    subgraph L1["Presentation Layer (Api)"]
+        direction TB
+        APIControllers["Controllers<br/>AuthController<br/>LeaveTypesController<br/>LeaveRequestsController<br/>LeaveAllocationsController<br/>UsersController"]
+        APIMiddleware["Middleware<br/>ExceptionMiddleware"]
+    end
+
+    subgraph L2["Application Layer (Core Brain)"]
+        direction TB
+        AppFeatures["Features (CQRS)<br/>Commands / Queries"]
+        AppMediatR["MediatR"]
+        AppHandlers["MediatR Handlers<br/>CreateLeaveTypeHandler<br/>GetLeaveRequestListHandler<br/>..."]
+        AppMapper["AutoMapper Profiles<br/>LeaveTypeProfile<br/>LeaveRequestProfile<br/>LeaveAllocationProfile"]
+        AppValidation["FluentValidation<br/>Command Validators<br/>BaseLeaveRequestValidator"]
+    end
+
+    subgraph L3["Domain Layer (Innermost)"]
+        direction TB
+        DomainBase["BaseEntity"]
+        DomainEntities["Core Entities<br/>LeaveType<br/>LeaveRequest<br/>LeaveAllocation<br/>..."]
+    end
+
+    subgraph L4["Infrastructure & Persistence Layer"]
+        direction TB
+        subgraph L41["Persistence"]
+            direction TB
+            PersistDb["HrDatabaseContext (EF Core)"]
+            PersistGenericRepo["GenericRepository<T>"]
+            PersistRepos["Repositories<br/>LeaveTypeRepo<br/>LeaveRequestRepo<br/>LeaveAllocationRepo"]
+            PersistData[(Database)]
+        end
+
+        subgraph L42["Identity"]
+            direction TB
+            IdentityDb["HrLeaveMgmtIdentityDbContext<br/>(IdentityDbContext)"]
+            IdentityAuth["AuthService"]
+        end
+
+        subgraph L43["Infrastructure"]
+            direction TB
+            InfraEmail["EmailSender"]
+            InfraLogging["Logging<br/>LoggerAdapter / Serilog"]
+        end
+    end
+
+    %% Dependency direction (outer -> inner)
+    APIControllers --> AppMediatR
+    APIMiddleware --> APIControllers
+    AppMediatR --> AppHandlers
+    AppFeatures --> AppHandlers
+    AppValidation --> AppHandlers
+    AppMapper --> AppHandlers
+    AppHandlers --> PersistRepos
+    AppHandlers --> IdentityAuth
+    AppHandlers --> DomainEntities
+    PersistRepos --> PersistGenericRepo
+    PersistGenericRepo --> PersistDb
+    PersistRepos --> DomainEntities
+    IdentityAuth --> IdentityDb
+    DomainEntities --> DomainBase
+
+    %% Data Flow
+    Client -. "Data Flow" .-> APIControllers
+    APIControllers -. "Data Flow" .-> AppMediatR
+    AppMediatR -. "Data Flow" .-> AppHandlers
+    AppHandlers -. "Data Flow" .-> PersistRepos
+    PersistRepos -. "Data Flow" .-> PersistData
+
+    %% Layer colors
+    style L1 fill:#e3f2fd,stroke:#1e88e5,stroke-width:1px
+    style L2 fill:#e8f5e9,stroke:#43a047,stroke-width:1px
+    style L3 fill:#fff8e1,stroke:#f9a825,stroke-width:1px
+    style L4 fill:#f3e5f5,stroke:#8e24aa,stroke-width:1px
+    style L41 fill:#ede7f6,stroke:#5e35b1,stroke-width:1px
+    style L42 fill:#fce4ec,stroke:#d81b60,stroke-width:1px
+    style L43 fill:#e0f7fa,stroke:#00838f,stroke-width:1px
+```
+
+#### Clean Architecture 簡化架構圖
+
+```mermaid
+flowchart TB
+    Client([Request / Client])
+
+    subgraph EXT["External Layers"]
+        direction LR
+
+        subgraph PRES["Presentation (API)"]
+            Api["HR.LeaveManagement.Api<br/>Controllers + Middleware"]
+        end
+
+        subgraph IDN["Infrastructure - Identity"]
+            Identity["**Identity**<br/>ASP.NET Core Identity + JWT"]
+        end
+
+        subgraph PST["Persistence"]
+            Persistence["Persistence<br/>EF Core + Generic Repository"]
+            Sql[(SQL Server)]
+        end
+
+        subgraph INF["Infrastructure - Email"]
+            Email["EmailSender<br/>Logging Adapter"]
+        end
+    end
+
+    subgraph CORE["Core (Internal)"]
+        direction TB
+        Application["**Application Layer**<br/>MediatR + CQRS + AutoMapper"]
+        Domain["**Domain Layer**<br/>BaseEntity + LeaveType + LeaveRequest"]
+        Application -- "Depends on" --> Domain
+    end
+
+    %% Correct dependency direction: outer -> inner
+    Api -- "Uses" --> Application
+    Identity -- "Implements" --> Application
+    Persistence -- "Implements" --> Application
+    Email -- "Implements" --> Application
+    Persistence -- "Stores" --> Sql
+
+    %% Request flow
+    Client ==> Api ==> Application ==> Persistence ==> Sql
+
+    %% Color groups + readable text
+    style CORE fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    style EXT fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
+    style PRES fill:#fff59d,stroke:#f9a825,stroke-width:1px,color:#000
+    style IDN fill:#fff59d,stroke:#f9a825,stroke-width:1px,color:#000
+    style PST fill:#fff59d,stroke:#f9a825,stroke-width:1px,color:#000
+    style INF fill:#fff59d,stroke:#f9a825,stroke-width:1px,color:#000
+    style Application fill:#b3e5fc,stroke:#0288d1,stroke-width:2px,color:#000
+    style Domain fill:#81d4fa,stroke:#0277bd,stroke-width:3px,color:#000
+    style Api fill:#fffde7,stroke:#f9a825,stroke-width:1px,color:#000
+    style Identity fill:#fffde7,stroke:#f9a825,stroke-width:1px,color:#000
+    style Persistence fill:#fffde7,stroke:#f9a825,stroke-width:1px,color:#000
+    style Email fill:#fffde7,stroke:#f9a825,stroke-width:1px,color:#000
+    style Sql fill:#ffe082,stroke:#f9a825,stroke-width:1px,color:#000
+    style Client fill:#eceff1,stroke:#90a4ae,stroke-width:1px,color:#333
+
+    %% Make data-flow arrows visually stronger
+    linkStyle 6 stroke:#1565c0,stroke-width:3px
+    linkStyle 7 stroke:#1565c0,stroke-width:3px
+    linkStyle 8 stroke:#1565c0,stroke-width:3px
+    linkStyle 9 stroke:#1565c0,stroke-width:3px
+```
+
 ---
 
 ### 🔐 API 權限與架構設計（API & RBAC Architecture）
